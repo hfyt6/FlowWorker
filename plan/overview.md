@@ -10,6 +10,24 @@
 
 ### 1.1 功能需求
 
+#### 记忆系统（参考 Cline 三层架构）
+
+**短期记忆（Context Memory）**
+- **滑动窗口管理**：自动管理对话历史，基于 Token 预算自动修剪
+- **上下文窗口控制**：动态计算可用 Token，确保响应空间
+- **关键消息保留**：系统提示、工具调用结果优先保留
+
+**中期记忆（Task Memory）**
+- **任务状态持久化**：将当前任务状态存储到文件系统
+- **工具调用历史记录**：记录已执行的工具调用及结果
+- **文件修改追踪**：记录文件修改历史，支持回滚和审计
+- **跨会话恢复**：支持从中断处恢复任务
+
+**长期记忆（Long-term Memory）**
+- **自定义指令**：存储用户偏好和行为约束
+- **模式偏好**：不同模式下的特定配置
+- **全局配置记忆**：API 配置、默认模型等持久化设置
+
 #### 会话管理
 - **创建会话**：用户可以创建新的对话会话，设置会话标题、选择 AI 模型、配置系统提示词
 - **会话列表**：展示所有会话，支持按时间排序、搜索和筛选
@@ -21,22 +39,26 @@
 
 #### 消息管理
 - **发送消息**：向 AI 发送用户消息，支持流式和非流式两种模式
-- **消息历史**：查看当前会话的完整消息历史
+- **消息历史**：查看当前会话的完整消息历史（滑动窗口内）
 - **消息删除**：删除单条消息
 - **重新生成**：请求 AI 重新生成上一条回复
 - **停止生成**：在流式响应过程中可以中断生成
+- **Token 计数显示**：实时显示消息和会话的 Token 消耗
+- **上下文压缩**：支持手动或自动压缩早期对话历史
 
 #### AI 配置管理
 - **多 API 配置**：支持配置多个 OpenAI 兼容的 API 服务（如 OpenAI、Azure OpenAI、本地部署等）
 - **模型切换**：在不同会话中使用不同的 AI 模型
 - **参数配置**：支持配置 temperature、max_tokens 等生成参数
 - **默认配置**：设置默认的 API 配置和模型
+- **模式配置**：支持不同模式（Code/Architect/Ask）的独立配置
 
 #### 用户体验
-- **实时响应**：支持 SSE 流式输出，实时显示 AI 回复
+- **实时响应**：支持 SSE 流式输出，实时显示 AI 回复（增量流式处理）
 - **加载状态**：清晰显示请求处理中的状态
 - **错误处理**：友好的错误提示和重试机制
 - **响应式布局**：适配桌面和移动端
+- **对话循环可视化**：显示当前迭代状态和工具执行情况
 
 ### 1.2 非功能需求
 
@@ -44,6 +66,12 @@
 - API 响应时间 < 200ms（不含 AI 生成时间）
 - 支持至少 100 个并发会话
 - 消息列表加载时间 < 1 秒（1000 条消息以内）
+- Token 估算准确率 > 90%
+
+#### 记忆系统要求
+- 滑动窗口自动修剪延迟 < 50ms
+- 任务状态持久化实时性 < 100ms
+- 支持至少 50 个并发任务的记忆存储
 
 #### 数据安全
 - API Key 加密存储
@@ -103,6 +131,8 @@
 
 ## 三、系统架构设计
 
+### 3.1 整体架构
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        客户端层                              │
@@ -126,8 +156,11 @@
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐   │
 │  │SessionService│  │MessageService│  │OpenAIService     │   │
 │  └──────────────┘  └──────────────┘  └──────────────────┘   │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐   │
+│  │TokenService  │  │ConfigService │  │MemoryService     │   │
+│  └──────────────┘  └──────────────┘  └──────────────────┘   │
 │  ┌──────────────┐  ┌──────────────┐                         │
-│  │TokenService  │  │ConfigService │                          │
+│  │ModeService   │  │TaskService   │                         │
 │  └──────────────┘  └──────────────┘                         │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -142,10 +175,10 @@
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                        数据存储层                            │
-│  ┌─────────────┐  ┌─────────────┐                           │
-│  │ SQLite/     │  │ File System │                           │
-│  │ PostgreSQL  │  │ (Export)    │                           │
-│  └─────────────┘  └─────────────┘                           │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │ SQLite/     │  │ File System │  │ Memory Storage      │  │
+│  │ PostgreSQL  │  │ (Export)    │  │ (Task/Custom Instr) │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -157,11 +190,99 @@
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### 3.2 核心对话循环（参考 Cline runLoop）
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      对话循环 (runLoop)                          │
+├─────────────────────────────────────────────────────────────────┤
+│  1. 将用户输入添加到消息历史                                      │
+│              │                                                   │
+│              ▼                                                   │
+│  2. 构建 API 请求消息（系统提示 + 历史 + 工具定义）                 │
+│              │                                                   │
+│              ▼                                                   │
+│  3. 调用 LLM Provider 获取响应（流式）                            │
+│              │                                                   │
+│              ▼                                                   │
+│  4. 处理流式响应                                                  │
+│     ┌─────────────────────┐                                     │
+│     │ chunk.type = content │ → 显示部分消息                       │
+│     │ chunk.type = tool_call│ → 执行工具调用                      │
+│     └─────────────────────┘                                     │
+│              │                                                   │
+│              ▼                                                   │
+│  5. 将工具调用结果添加到历史                                      │
+│              │                                                   │
+│              ▼                                                   │
+│  6. 检查是否需要继续（有工具调用则递归）                           │
+│              │                                                   │
+│              ▼                                                   │
+│  7. 循环终止（无工具调用/达到最大迭代/用户取消/错误阈值）           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 3.3 记忆系统架构（参考 Cline 三层设计）
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Layer 1: Context Memory                   │
+│                    (短期记忆 / 滑动窗口)                      │
+│  - 当前会话的对话历史                                         │
+│  - 自动修剪以保持 Token 预算                                   │
+│  - 使用滑动窗口算法管理                                        │
+│  - 内存存储，会话结束释放                                      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Layer 2: Task Memory                      │
+│                    (中期记忆 / 任务级)                        │
+│  - 当前任务的元数据和状态                                      │
+│  - 已执行的工具调用历史                                        │
+│  - 文件修改记录                                                │
+│  - 存储在 .tworker/memory/tasks/<task_id>.json             │
+│  - 支持跨会话恢复                                              │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Layer 3: Long-term Memory                 │
+│                    (长期记忆 / 跨任务)                        │
+│  - 自定义指令（Custom Instructions）                          │
+│  - 模式偏好（Mode Preferences）                               │
+│  - API 配置和默认设置                                         │
+│  - 存储在全局存储或项目级存储中                                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 3.4 流式响应处理（参考 Cline 增量流式）
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   SSE 流式响应处理                            │
+│                                                              │
+│  Client                          Server                      │
+│    │                              │                          │
+│    │──── POST /chat ─────────────►│                          │
+│    │                              │                          │
+│    │◄──── text/event-stream ──────│                          │
+│    │                              │                          │
+│    │◄──── data: {"type":"content"}│ (增量内容)                │
+│    │◄──── data: {"type":"content"}│                          │
+│    │◄──── data: {"type":"tool_call"}│ (工具调用)              │
+│    │◄──── data: [DONE]            │                          │
+│                                                              │
+│  解析格式：data: {JSON}                                     │
+│  更新频率：~50-100ms                                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 四、数据库设计
 
-### 4.1 数据表结构
+### 4.1 核心数据表结构
 
 #### Sessions 表
 | 字段 | 类型 | 说明 |
@@ -205,7 +326,44 @@
 ```
 Sessions (1) ────── (N) Messages
 ApiConfigs (1) ──── (N) Sessions
+Tasks (1) ───────── (N) ToolCallRecords
+Tasks (1) ───────── (N) FileModifications
 ```
+
+### 4.3 记忆系统数据存储
+
+#### Tasks 表（任务记忆）
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| Id | string (GUID) | 主键 |
+| Status | string | 状态（running/paused/completed/failed） |
+| Goal | string | 任务目标 |
+| CreatedAt | datetime | 创建时间 |
+| UpdatedAt | datetime | 更新时间 |
+| MessageCount | int | 消息数量 |
+| ToolCallCount | int | 工具调用次数 |
+| MemoryJson | json | 完整记忆数据（序列化） |
+
+#### ToolCallRecords 表
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| Id | string (GUID) | 主键 |
+| TaskId | string (GUID) | 关联的任务 |
+| ToolName | string | 工具名称 |
+| Arguments | json | 调用参数 |
+| Result | string? | 执行结果 |
+| Error | string? | 错误信息 |
+| Timestamp | datetime | 时间戳 |
+
+#### CustomInstructions 表（长期记忆）
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| Id | string (GUID) | 主键 |
+| Scope | string | 作用域（global/workspace） |
+| Mode | string? | 关联模式 |
+| Content | string | 指令内容 |
+| CreatedAt | datetime | 创建时间 |
+| UpdatedAt | datetime | 更新时间 |
 
 ---
 
@@ -261,7 +419,9 @@ TWorker/
 │   │   │   ├── v1/
 │   │   │   │   ├── SessionsController.cs
 │   │   │   │   ├── MessagesController.cs
-│   │   │   │   └── ApiConfigsController.cs
+│   │   │   │   ├── ApiConfigsController.cs
+│   │   │   │   ├── TasksController.cs
+│   │   │   │   └── MemoryController.cs
 │   │   │   └── BaseController.cs
 │   │   ├── Middleware/
 │   │   ├── Filters/
@@ -272,24 +432,37 @@ TWorker/
 │   │   ├── Entities/
 │   │   │   ├── Session.cs
 │   │   │   ├── Message.cs
-│   │   │   └── ApiConfig.cs
+│   │   │   ├── ApiConfig.cs
+│   │   │   ├── Task.cs              # 任务记忆实体
+│   │   │   ├── ToolCallRecord.cs    # 工具调用记录
+│   │   │   └── CustomInstruction.cs # 自定义指令
 │   │   ├── Interfaces/
 │   │   │   ├── ISessionService.cs
 │   │   │   ├── IMessageService.cs
 │   │   │   ├── IOpenAIService.cs
+│   │   │   ├── IMemoryService.cs    # 记忆服务接口
+│   │   │   ├── ITaskService.cs      # 任务服务接口
 │   │   │   └── IRepository.cs
 │   │   ├── Services/
 │   │   │   ├── SessionService.cs
 │   │   │   ├── MessageService.cs
 │   │   │   ├── OpenAIService.cs
-│   │   │   └── TokenService.cs
+│   │   │   ├── TokenService.cs
+│   │   │   ├── MemoryService.cs     # 记忆系统服务
+│   │   │   │   ├── SlidingWindowManager.cs    # 滑动窗口管理
+│   │   │   │   └── ContextBuilder.cs          # 上下文构建器
+│   │   │   ├── TaskService.cs       # 任务管理服务
+│   │   │   └── ModeService.cs       # 模式管理服务
 │   │   ├── DTOs/
 │   │   │   ├── SessionDtos.cs
 │   │   │   ├── MessageDtos.cs
-│   │   │   └── ApiConfigDtos.cs
+│   │   │   ├── ApiConfigDtos.cs
+│   │   │   ├── TaskDtos.cs
+│   │   │   └── MemoryDtos.cs
 │   │   └── Common/
 │   │       ├── Result.cs
-│   │       └── Exceptions.cs
+│   │       ├── Exceptions.cs
+│   │       └── TokenBudget.cs       # Token 预算管理
 │   │
 │   ├── TWorker.Infrastructure/     # 基础设施层
 │   │   ├── TWorker.Infrastructure.csproj
@@ -300,17 +473,29 @@ TWorker/
 │   │   ├── Repositories/
 │   │   │   ├── Repository.cs
 │   │   │   ├── SessionRepository.cs
-│   │   │   └── MessageRepository.cs
+│   │   │   ├── MessageRepository.cs
+│   │   │   └── TaskRepository.cs
 │   │   ├── OpenAI/
 │   │   │   ├── OpenAIClient.cs
 │   │   │   └── OpenAIOptions.cs
+│   │   ├── Memory/
+│   │   │   ├── TaskStorage.cs       # 任务存储
+│   │   │   ├── CustomInstructionStorage.cs  # 自定义指令存储
+│   │   │   └── SlidingWindow.cs     # 滑动窗口实现
 │   │   └── Security/
 │   │       └── EncryptionHelper.cs
 │   │
 │   └── TWorker.Shared/              # 共享层
 │       ├── TWorker.Shared.csproj
 │       ├── Constants.cs
+│       ├── Enums/
+│       │   └── Mode.cs              # 模式枚举 (Code/Architect/Ask)
 │       └── Extensions/
+│
+├── .tworker/                        # 记忆数据存储目录
+│   └── memory/
+│       ├── tasks/                   # 任务记忆存储
+│       └── instructions/            # 自定义指令存储
 │
 ├── tests/
 │   ├── TWorker.Api.Tests/
@@ -330,13 +515,31 @@ TWorker/
     │   │   │   ├── +page.svelte
     │   │   │   └── [id]/
     │   │   │       └── +page.svelte
-    │   │   └── settings/
-    │   │       └── +page.svelte
+    │   │   ├── settings/
+    │   │   │   └── +page.svelte
+    │   │   └── memory/
+    │   │       └── +page.svelte     # 记忆管理页面
     │   ├── lib/
     │   │   ├── components/
+    │   │   │   ├── Chat/
+    │   │   │   │   ├── MessageList.svelte
+    │   │   │   │   ├── ChatInput.svelte
+    │   │   │   │   └── TokenCounter.svelte
+    │   │   │   ├── Memory/
+    │   │   │   │   ├── SlidingWindowStatus.svelte
+    │   │   │   │   └── TaskMemoryPanel.svelte
+    │   │   │   └── Settings/
+    │   │   │       └── ApiConfigForm.svelte
     │   │   ├── stores/
+    │   │   │   ├── sessionStore.ts
+    │   │   │   ├── messageStore.ts
+    │   │   │   └── memoryStore.ts   # 记忆状态管理
     │   │   ├── services/
+    │   │   │   ├── api.ts
+    │   │   │   └── memory.ts        # 记忆 API 服务
     │   │   └── utils/
+    │   │       ├── tokenCounter.ts  # Token 计数工具
+    │   │       └── streamParser.ts  # SSE 流解析
     │   └── app.css
     └── static/
 ```
