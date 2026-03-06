@@ -1,0 +1,132 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.cache
+*.pidb
+*.pidb.meta
+*.ilk
+*.meta
+*.obj
+*.tmp
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Oo]ut/
+[Oo]utput/
+[Ll]ib/
+[Ll]ibs/
+[Ll]ibraries/
+[Ll]ibrary/
+[Ll]ocal/
+[Oo]nline/
+[Ii]ntermediate/
+[Ii]ntermediates/
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og/
+[Bb]uild/
+[Tt]est/
+[Tt]ests/
+[Tt]estResult*/
+[Ii]ncrementalBuild/
+[Tt]emp/
+[Tt]empBin/
+[Tt]empObj/
+[Tt]empLib/
+[Vv]cpkg/
+[Vv]cpkgPackages/
+
+# MSTest test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og/
+
+# NUnit
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+nunit-*.xml.*
+*.cache
+TestResults.xml
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+**/Properties/launchSettings.json
+**/appsettings*.json
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# NuGet Packages
+*.nupkg
+*.snupkg
+**/packages/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Others
+sql/
+*.db
+*.mdl
+*.mdf
+*.ldf
+*.database
+*.scc
+*.vssscc
+.builds/
+*.orig
+*.dbmdl
+*.dbproj
+*.sln
+*.suo
+*.user
+*.userosscache
+*.docstates
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Frontend
+frontend/node_modules/
+frontend/.svelte-kit/
+frontend/.output/
+frontend/.vercel/
+frontend.netlify/
+frontend.wrangler/
+frontend/build/
