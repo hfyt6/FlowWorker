@@ -241,7 +241,7 @@
 │  - 当前任务的元数据和状态                                      │
 │  - 已执行的工具调用历史                                        │
 │  - 文件修改记录                                                │
-│  - 存储在 .tworker/memory/tasks/<task_id>.json             │
+│  - 存储在 .flowworker/memory/tasks/<task_id>.json             │
 │  - 支持跨会话恢复                                              │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -404,15 +404,15 @@ Tasks (1) ───────── (N) FileModifications
 ## 六、项目目录结构
 
 ```
-TWorker/
-├── TWorker.sln
+FlowWorker/
+├── FlowWorker.sln
 ├── README.md
 ├── .env.example
 ├── docker-compose.yml
 │
 ├── src/
-│   ├── TWorker.Api/                 # API 项目
-│   │   ├── TWorker.Api.csproj
+│   ├── FlowWorker.Api/                 # API 项目
+│   │   ├── FlowWorker.Api.csproj
 │   │   ├── Program.cs
 │   │   ├── appsettings.json
 │   │   ├── Controllers/
@@ -427,8 +427,8 @@ TWorker/
 │   │   ├── Filters/
 │   │   └── Extensions/
 │   │
-│   ├── TWorker.Core/                # 核心业务层
-│   │   ├── TWorker.Core.csproj
+│   ├── FlowWorker.Core/                # 核心业务层
+│   │   ├── FlowWorker.Core.csproj
 │   │   ├── Entities/
 │   │   │   ├── Session.cs
 │   │   │   ├── Message.cs
@@ -464,8 +464,8 @@ TWorker/
 │   │       ├── Exceptions.cs
 │   │       └── TokenBudget.cs       # Token 预算管理
 │   │
-│   ├── TWorker.Infrastructure/     # 基础设施层
-│   │   ├── TWorker.Infrastructure.csproj
+│   ├── FlowWorker.Infrastructure/     # 基础设施层
+│   │   ├── FlowWorker.Infrastructure.csproj
 │   │   ├── Data/
 │   │   │   ├── AppDbContext.cs
 │   │   │   ├── Configurations/
@@ -485,22 +485,22 @@ TWorker/
 │   │   └── Security/
 │   │       └── EncryptionHelper.cs
 │   │
-│   └── TWorker.Shared/              # 共享层
-│       ├── TWorker.Shared.csproj
+│   └── FlowWorker.Shared/              # 共享层
+│       ├── FlowWorker.Shared.csproj
 │       ├── Constants.cs
 │       ├── Enums/
 │       │   └── Mode.cs              # 模式枚举 (Code/Architect/Ask)
 │       └── Extensions/
 │
-├── .tworker/                        # 记忆数据存储目录
+├── .flowworker/                        # 记忆数据存储目录
 │   └── memory/
 │       ├── tasks/                   # 任务记忆存储
 │       └── instructions/            # 自定义指令存储
 │
 ├── tests/
-│   ├── TWorker.Api.Tests/
-│   ├── TWorker.Core.Tests/
-│   └── TWorker.Integration.Tests/
+│   ├── FlowWorker.Api.Tests/
+│   ├── FlowWorker.Core.Tests/
+│   └── FlowWorker.Integration.Tests/
 │
 └── frontend/                        # Svelte 前端
     ├── package.json
@@ -613,21 +613,21 @@ TWorker/
 ### 后端 packages.config
 
 ```xml
-<!-- TWorker.Api.csproj -->
+<!-- FlowWorker.Api.csproj -->
 <ItemGroup>
   <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
   <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
 </ItemGroup>
 
-<!-- TWorker.Core.csproj -->
+<!-- FlowWorker.Core.csproj -->
 <ItemGroup>
   <PackageReference Include="AutoMapper" Version="12.0.0" />
   <PackageReference Include="FluentValidation" Version="11.9.0" />
   <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.9.0" />
 </ItemGroup>
 
-<!-- TWorker.Infrastructure.csproj -->
+<!-- FlowWorker.Infrastructure.csproj -->
 <ItemGroup>
   <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
   <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
@@ -641,7 +641,7 @@ TWorker/
 
 ```json
 {
-  "name": "tworker-frontend",
+  "name": "flowworker-frontend",
   "version": "0.1.0",
   "scripts": {
     "dev": "vite dev",
@@ -676,12 +676,12 @@ services:
   api:
     build:
       context: .
-      dockerfile: src/TWorker.Api/Dockerfile
+      dockerfile: src/FlowWorker.Api/Dockerfile
     ports:
       - "5000:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Data Source=/app/data/tworker.db
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/flowworker.db
       - OpenAI__BaseUrl=https://api.openai.com/v1
       - OpenAI__ApiKey=${OPENAI_API_KEY}
     volumes:
