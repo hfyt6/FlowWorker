@@ -3,6 +3,7 @@
     import { sessions, currentSession, loading, error, fetchSessions, deleteSession, searchSessions } from '$lib/stores/sessionStore';
     import { goto } from '$app/navigation';
     import { page } from '$app/state';
+    import { sessionApi } from '$lib/services/api';
 
     // State
     let searchQuery = '';
@@ -17,25 +18,15 @@
     // Handlers
     async function handleCreateSession() {
         try {
-            const response = await fetch('/api/v1/sessions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    title: 'New Session',
-                    apiConfigId: '',
-                    model: 'gpt-3.5-turbo',
-                    systemPrompt: 'You are a helpful assistant.',
-                    temperature: 0.7,
-                    maxTokens: null
-                })
+            const id = await sessionApi.createSession({
+                title: 'New Session',
+                apiConfigId: '',
+                model: 'gpt-3.5-turbo',
+                systemPrompt: 'You are a helpful assistant.',
+                temperature: 0.7,
+                maxTokens: null
             });
-
-            if (response.ok) {
-                const id = await response.text();
-                goto(`/sessions/${id}`);
-            }
+            goto(`/sessions/${id}`);
         } catch (err) {
             console.error('Failed to create session:', err);
         }

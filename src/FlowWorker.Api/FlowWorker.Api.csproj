@@ -13,6 +13,8 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <!-- SQLitePCLRaw bundle 提供程序，包含所有必要的 SQLite 依赖 -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.10" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,5 +22,32 @@
     <ProjectReference Include="..\FlowWorker.Infrastructure\FlowWorker.Infrastructure.csproj" />
     <ProjectReference Include="..\FlowWorker.Shared\FlowWorker.Shared.csproj" />
   </ItemGroup>
+
+  <!-- 在构建前先构建前端 -->
+  <Target Name="BuildFrontend" BeforeTargets="Build">
+    <Exec Command="npm run build" WorkingDirectory="D:\sources\AIProjects\FlowWorker\frontend" />
+  </Target>
+
+  <!-- 在发布前先构建前端 -->
+  <Target Name="PublishFrontend" BeforeTargets="Publish">
+    <Exec Command="npm run build" WorkingDirectory="D:\sources\AIProjects\FlowWorker\frontend" />
+  </Target>
+
+  <!-- 确保所有依赖都被复制到 publish 目录 -->
+  <Target Name="CopyDependenciesToPublish" AfterTargets="Publish">
+    <!-- 复制所有 DLL 和 EXE 文件 -->
+    <Copy SourceFiles="$(OutputPath)*.dll" DestinationFolder="$(PublishDir)" />
+    <Copy SourceFiles="$(OutputPath)*.exe" DestinationFolder="$(PublishDir)" />
+    <Copy SourceFiles="$(OutputPath)*.config" DestinationFolder="$(PublishDir)" />
+    <!-- 复制 runtimes 目录 -->
+    <Copy SourceFiles="$(OutputPath)runtimes\**" DestinationFolder="$(PublishDir)\runtimes\%(RecursiveDir)" />
+    <!-- 复制 wwwroot 目录 -->
+    <Copy SourceFiles="wwwroot\**" DestinationFolder="$(PublishDir)\wwwroot\%(RecursiveDir)" />
+    <!-- 复制 SQLite 原生库到 publish 目录根目录 -->
+    <Copy SourceFiles="$(OutputPath)runtimes\win-x64\native\e_sqlite3.dll" DestinationFolder="$(PublishDir)" Condition="Exists('$(OutputPath)runtimes\win-x64\native\e_sqlite3.dll')" />
+    <Copy SourceFiles="$(OutputPath)runtimes\win-arm64\native\e_sqlite3.dll" DestinationFolder="$(PublishDir)" Condition="Exists('$(OutputPath)runtimes\win-arm64\native\e_sqlite3.dll')" />
+    <Copy SourceFiles="$(OutputPath)runtimes\win-arm\native\e_sqlite3.dll" DestinationFolder="$(PublishDir)" Condition="Exists('$(OutputPath)runtimes\win-arm\native\e_sqlite3.dll')" />
+    <Copy SourceFiles="$(OutputPath)runtimes\win-x86\native\e_sqlite3.dll" DestinationFolder="$(PublishDir)" Condition="Exists('$(OutputPath)runtimes\win-x86\native\e_sqlite3.dll')" />
+  </Target>
 
 </Project>

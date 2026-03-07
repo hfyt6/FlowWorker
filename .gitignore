@@ -2,6 +2,10 @@
 .DS_Store
 Thumbs.db
 
+#publish
+**/wwwroot/
+**/publish/
+
 # Environment variables
 .env
 .env.*

@@ -23,6 +23,17 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+// 配置 CORS，允许前端开发服务器访问 API
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5121")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 // 配置 Entity Framework Core
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=flowworker.db"));
@@ -54,9 +65,20 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// 使用 CORS 中间件
+app.UseCors("AllowFrontend");
+
+// 使用静态文件中间件
+app.UseStaticFiles();
+app.UseRouting();
+
 app.UseAuthorization();
 
+// 映射控制器
 app.MapControllers();
+
+// 映射前端路由（处理前端路由的 fallback）
+app.MapFallbackToFile("index.html");
 
 // 应用数据库迁移并初始化数据
 using (var scope = app.Services.CreateScope())
