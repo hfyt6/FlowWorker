@@ -5,6 +5,7 @@ import { goto } from '$app/navigation';
 import { messageApi, apiConfigApi, sessionApi } from '$lib/services/api';
 import { messages, loading, error, fetchMessages, sendMessage, currentMessage } from '$lib/stores/messageStore';
 import StreamMessage from '$lib/components/StreamMessage.svelte';
+import MarkdownRenderer from '$lib/components/MarkdownRenderer.svelte';
 import { MessageRole } from '$lib/types/message';
 import type { MessageListItemDto } from '$lib/types/message';
 import type { ApiConfigListItemDto, SessionDetailDto } from '$lib/types';
@@ -349,7 +350,11 @@ function handleKeyDown(e: KeyboardEvent) {
                     </div>
                     <div class="message-content-wrapper">
                         <div class="message-bubble-content">
-                            <pre><code>{message.content}</code></pre>
+                            {#if message.role === 'assistant'}
+                                <MarkdownRenderer content={message.content} />
+                            {:else}
+                                <pre><code>{message.content}</code></pre>
+                            {/if}
                         </div>
                         <div class="message-meta">
                             <span class="time">{new Date(message.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
