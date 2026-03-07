@@ -4,6 +4,7 @@ using System.Text.Json;
 using FlowWorker.Core.Interfaces;
 using FlowWorker.Shared.DTOs;
 using FlowWorker.Shared.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace FlowWorker.Infrastructure.OpenAI;
 
@@ -13,10 +14,12 @@ namespace FlowWorker.Infrastructure.OpenAI;
 public class OpenAIService : IOpenAIService
 {
     private readonly HttpClient _httpClient;
+    private readonly ILogger<OpenAIService> _logger;
 
-    public OpenAIService(HttpClient httpClient)
+    public OpenAIService(HttpClient httpClient, ILogger<OpenAIService> logger)
     {
         _httpClient = httpClient;
+        _logger = logger;
     }
 
     public async Task<string> SendMessageAsync(
@@ -52,7 +55,7 @@ public class OpenAIService : IOpenAIService
         string baseUrl,
         string model,
         IEnumerable<Message> messages,
-        Action<StreamContentChunk> onChunk,
+        Func<StreamContentChunk, Task> onChunk,
         string? systemPrompt = null,
         decimal? temperature = null,
         int? maxTokens = null)
@@ -70,7 +73,7 @@ public class OpenAIService : IOpenAIService
 
         httpRequest.Headers.Add("Authorization", $"Bearer {apiKey}");
 
-        using var response = await _httpClient.SendAsync(httpRequest);
+        using var response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
         response.EnsureSuccessStatusCode();
 
         var fullContent = new StringBuilder();
@@ -96,21 +99,27 @@ public class OpenAIService : IOpenAIService
 
                 try
                 {
-                    var chunk = JsonSerializer.Deserialize<OpenAiStreamChunk>(data, new JsonSerializerOptions { PropertyNamingPolicy = null });
+                    var chunk = JsonSerializer.Deserialize<OpenAiStreamChunk>(data, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower });
                     
-                    if (chunk?.Choices?.FirstOrDefault()?.Delta?.Content != null)
+                    if (chunk?.Choices != null && chunk.Choices.Count > 0)
                     {
-                        fullContent.Append(chunk.Choices[0].Delta.Content);
-                        onChunk(new StreamContentChunk
+                        var choice = chunk.Choices[0];
+                        if (choice.Delta?.Content != null)
                         {
-                            Type = "content",
-                            Content = chunk.Choices[0].Delta.Content
-                        });
+                            var content = choice.Delta.Content;
+                            fullContent.Append(content);
+                            
+                            await onChunk(new StreamContentChunk
+                            {
+                                Type = "content",
+                                Content = content
+                            });
+                        }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // 忽略解析错误
+                    _logger.LogWarning("[OpenAI Stream] 解析 chunk 失败: {Error}", ex.Message);
                 }
             }
         }

@@ -38,14 +38,14 @@ public interface IOpenAIService
     /// <param name="systemPrompt">系统提示词</param>
     /// <param name="temperature">温度</param>
     /// <param name="maxTokens">最大 Token 数</param>
-    /// <param name="onChunk">每块响应的回调</param>
+    /// <param name="onChunk">每块响应的回调（支持异步）</param>
     /// <returns>完整的响应内容</returns>
     Task<string> SendMessageStreamAsync(
         string apiKey,
         string baseUrl,
         string model,
         IEnumerable<Message> messages,
-        Action<StreamContentChunk> onChunk,
+        Func<StreamContentChunk, Task> onChunk,
         string? systemPrompt = null,
         decimal? temperature = null,
         int? maxTokens = null);

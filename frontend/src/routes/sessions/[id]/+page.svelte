@@ -3,7 +3,7 @@ import { onMount } from 'svelte';
 import { page } from '$app/state';
 import { goto } from '$app/navigation';
 import { messageApi, apiConfigApi, sessionApi } from '$lib/services/api';
-import { messages, loading, error, fetchMessages, sendMessage, currentMessage } from '$lib/stores/messageStore';
+import { messages, loading, error, fetchMessages, sendMessage, currentMessage, streamingContent, sendMessageStream, regenerateResponseStream } from '$lib/stores/messageStore';
 import StreamMessage from '$lib/components/StreamMessage.svelte';
 import MarkdownRenderer from '$lib/components/MarkdownRenderer.svelte';
 import { MessageRole } from '$lib/types/message';
@@ -152,61 +152,144 @@ $: if (messageListElement && $messages) {
 
 // Handlers
 async function handleSendMessage() {
-    if (!inputMessage.trim() || isSending) {
+        if (!inputMessage.trim() || isSending) {
+            return;
+        }
+
+        isSending = true;
+
+        // 先保存用户输入并清空输入框
+        const userContent = inputMessage.trim();
+        inputMessage = '';
+
+        // 立即添加用户消息到列表（乐观更新）
+        const userMessageId = 'user-' + Date.now();
+        messages.update(currentMessages => [
+            ...currentMessages,
+            {
+                id: userMessageId,
+                role: MessageRole.User,
+                content: userContent,
+                tokens: null,
+                model: null,
+                createdAt: new Date().toISOString()
+            }
+        ]);
+
+        // 标记AI正在回复，此时应该自动滚动
+        isAiResponding = true;
+
+        // 创建临时的AI消息用于流式显示
+        const assistantMessageId = 'assistant-' + Date.now();
+        let assistantContent = '';
+        
+        messages.update(currentMessages => [
+            ...currentMessages,
+            {
+                id: assistantMessageId,
+                role: MessageRole.Assistant,
+                content: '',
+                tokens: null,
+                model: currentSession?.model || null,
+                createdAt: new Date().toISOString()
+            }
+        ]);
+
+        try {
+            // 使用流式发送消息
+            await sendMessageStream(sessionId, userContent, (chunk) => {
+                if (chunk.type === 'content' && chunk.content) {
+                    assistantContent += chunk.content;
+                    // 更新AI消息内容
+                    messages.update(currentMessages => {
+                        const updatedMessages = [...currentMessages];
+                        const lastMessage = updatedMessages[updatedMessages.length - 1];
+                        if (lastMessage && lastMessage.id === assistantMessageId) {
+                            lastMessage.content = assistantContent;
+                        }
+                        return updatedMessages;
+                    });
+                }
+            });
+        } catch (err) {
+            console.error('[Page] 发送消息失败:', err);
+            error.set(err instanceof Error ? err.message : 'Unknown error');
+            // 移除临时的AI消息
+            messages.update(currentMessages => 
+                currentMessages.filter(m => m.id !== assistantMessageId)
+            );
+        } finally {
+            // AI回复完成，重置标记
+            isAiResponding = false;
+            isSending = false;
+        }
+    }
+
+async function handleRegenerate() {
+    if (isSending || sessionMessages.length < 2) {
         return;
     }
 
     isSending = true;
+    isAiResponding = true;
 
-    // 先保存用户输入并清空输入框
-    const userContent = inputMessage.trim();
-    inputMessage = '';
+    // 找到最后一条AI消息并移除
+    const lastAssistantMessage = [...sessionMessages].reverse().find(m => m.role === MessageRole.Assistant);
+    if (!lastAssistantMessage) {
+        isSending = false;
+        isAiResponding = false;
+        return;
+    }
 
-    // 立即添加用户消息到列表（乐观更新）
-    const userMessageId = 'user-' + Date.now();
+    // 移除最后一条AI消息
+    messages.update(currentMessages => 
+        currentMessages.filter(m => m.id !== lastAssistantMessage.id)
+    );
+
+    // 创建新的AI消息用于流式显示
+    const assistantMessageId = 'assistant-' + Date.now();
+    let assistantContent = '';
+    
     messages.update(currentMessages => [
         ...currentMessages,
         {
-            id: userMessageId,
-            role: MessageRole.User,
-            content: userContent,
+            id: assistantMessageId,
+            role: MessageRole.Assistant,
+            content: '',
             tokens: null,
-            model: null,
+            model: currentSession?.model || null,
             createdAt: new Date().toISOString()
         }
     ]);
 
-    // 标记AI正在回复，此时应该自动滚动
-    isAiResponding = true;
-
     try {
-        const response = await messageApi.sendMessage(sessionId, userContent);
-
-        // 添加 AI 回复（处理后端 PascalCase 响应）
-        messages.update(currentMessages => [
-            ...currentMessages,
-            {
-                id: 'assistant-' + Date.now(),
-                role: MessageRole.Assistant,
-                content: response.content || (response as any).Content,
-                tokens: response.tokens ?? (response as any).Tokens,
-                model: response.model || (response as any).Model,
-                createdAt: new Date().toISOString()
+        // 使用流式重新生成
+        await regenerateResponseStream(sessionId, (chunk) => {
+            if (chunk.type === 'content' && chunk.content) {
+                assistantContent += chunk.content;
+                // 更新AI消息内容
+                messages.update(currentMessages => {
+                    const updatedMessages = [...currentMessages];
+                    const lastMessage = updatedMessages[updatedMessages.length - 1];
+                    if (lastMessage && lastMessage.id === assistantMessageId) {
+                        lastMessage.content = assistantContent;
+                    }
+                    return updatedMessages;
+                });
             }
-        ]);
+        });
     } catch (err) {
-        console.error('Failed to send message:', err);
+        console.error('Failed to regenerate response:', err);
         error.set(err instanceof Error ? err.message : 'Unknown error');
+        // 恢复原来的AI消息
+        messages.update(currentMessages => {
+            const filtered = currentMessages.filter(m => m.id !== assistantMessageId);
+            return [...filtered, lastAssistantMessage];
+        });
     } finally {
-        // AI回复完成，重置标记
         isAiResponding = false;
         isSending = false;
     }
-}
-
-async function handleRegenerate() {
-    // TODO: 实现重新生成功能
-    console.log('Regenerate');
 }
 
 async function handleDeleteMessage(id: string) {

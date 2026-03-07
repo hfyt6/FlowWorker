@@ -1,5 +1,6 @@
 using FlowWorker.Core.DTOs;
 using FlowWorker.Core.Repositories;
+using FlowWorker.Shared.DTOs;
 using FlowWorker.Shared.Entities;
 
 namespace FlowWorker.Core.Interfaces;
@@ -52,4 +53,21 @@ public interface IMessageService
     /// <param name="sessionId">会话 ID</param>
     /// <returns>AI 响应</returns>
     Task<SendMessageResponse> RegenerateResponseAsync(Guid sessionId);
+
+    /// <summary>
+    /// 流式发送消息到 AI
+    /// </summary>
+    /// <param name="sessionId">会话 ID</param>
+    /// <param name="content">消息内容</param>
+    /// <param name="onChunk">流式数据回调（支持异步）</param>
+    /// <returns>AI 响应</returns>
+    Task<SendMessageResponse> SendMessageStreamAsync(Guid sessionId, string content, Func<StreamContentChunk, Task> onChunk);
+
+    /// <summary>
+    /// 流式重新生成回复
+    /// </summary>
+    /// <param name="sessionId">会话 ID</param>
+    /// <param name="onChunk">流式数据回调（支持异步）</param>
+    /// <returns>AI 响应</returns>
+    Task<SendMessageResponse> RegenerateResponseStreamAsync(Guid sessionId, Func<StreamContentChunk, Task> onChunk);
 }

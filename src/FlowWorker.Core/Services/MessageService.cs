@@ -1,9 +1,12 @@
 using FlowWorker.Core.DTOs;
 using FlowWorker.Core.Interfaces;
 using FlowWorker.Core.Repositories;
+using FlowWorker.Shared.DTOs;
 using FlowWorker.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Linq;
+using System.Text;
 
 namespace FlowWorker.Core.Services;
 
@@ -15,15 +18,18 @@ public class MessageService : IMessageService
     private readonly IMessageRepository _messageRepository;
     private readonly ISessionRepository _sessionRepository;
     private readonly IOpenAIService _openAIService;
+    private readonly ILogger<MessageService> _logger;
 
     public MessageService(
         IMessageRepository messageRepository,
         ISessionRepository sessionRepository,
-        IOpenAIService openAIService)
+        IOpenAIService openAIService,
+        ILogger<MessageService> logger)
     {
         _messageRepository = messageRepository;
         _sessionRepository = sessionRepository;
         _openAIService = openAIService;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<MessageListItemDto>> GetMessagesAsync(Guid sessionId)
@@ -230,6 +236,193 @@ public class MessageService : IMessageService
         };
         
         await _messageRepository.AddAsync(assistantMessage);
+
+        return new SendMessageResponse
+        {
+            Content = responseContent,
+            Model = session.Model,
+            IsComplete = true
+        };
+    }
+
+    public async Task<SendMessageResponse> SendMessageStreamAsync(Guid sessionId, string content, Func<StreamContentChunk, Task> onChunk)
+    {
+        var session = await _sessionRepository.GetByIdAsync(sessionId);
+        if (session == null)
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 不存在");
+        }
+
+        // 验证 API 配置
+        if (session.ApiConfig == null)
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 未配置 API 信息，请先在设置页面配置 API 信息");
+        }
+
+        if (string.IsNullOrWhiteSpace(session.ApiConfig.BaseUrl))
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 的 API 基础 URL 为空，请先在设置页面配置 API 信息");
+        }
+
+        if (string.IsNullOrWhiteSpace(session.ApiConfig.ApiKey))
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 的 API 密钥为空，请先在设置页面配置 API 信息");
+        }
+
+        // 获取会话的历史消息
+        var messages = await _messageRepository.GetBySessionIdAsync(sessionId);
+        
+        // 添加用户消息
+        var userMessage = new Message
+        {
+            Id = Guid.NewGuid(),
+            SessionId = sessionId,
+            Role = MessageRole.User,
+            Content = content,
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        // 保存用户消息到数据库
+        await _messageRepository.AddAsync(userMessage);
+        
+        var allMessages = messages.Concat(new[] { userMessage });
+        
+        // 调用 OpenAI API 流式接口
+        var fullContent = new StringBuilder();
+        
+        await _openAIService.SendMessageStreamAsync(
+            session.ApiConfig.ApiKey,
+            session.ApiConfig.BaseUrl,
+            session.Model,
+            allMessages,
+            async chunk =>
+            {
+                if (chunk.Type == "content" && !string.IsNullOrEmpty(chunk.Content))
+                {
+                    fullContent.Append(chunk.Content);
+                }
+                await onChunk(chunk);
+            },
+            session.SystemPrompt,
+            session.Temperature,
+            session.MaxTokens);
+
+        var responseContent = fullContent.ToString();
+
+        // 保存助手消息
+        var assistantMessage = new Message
+        {
+            Id = Guid.NewGuid(),
+            SessionId = sessionId,
+            Role = MessageRole.Assistant,
+            Content = responseContent,
+            Model = session.Model,
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        await _messageRepository.AddAsync(assistantMessage);
+
+        // 发送完成标记
+        await onChunk(new StreamContentChunk
+        {
+            Type = "complete",
+            Content = responseContent
+        });
+        
+        return new SendMessageResponse
+        {
+            Content = responseContent,
+            Model = session.Model,
+            IsComplete = true
+        };
+    }
+
+    public async Task<SendMessageResponse> RegenerateResponseStreamAsync(Guid sessionId, Func<StreamContentChunk, Task> onChunk)
+    {
+        var session = await _sessionRepository.GetByIdAsync(sessionId);
+        if (session == null)
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 不存在");
+        }
+
+        // 验证 API 配置
+        if (session.ApiConfig == null)
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 未配置 API 信息，请先在设置页面配置 API 信息");
+        }
+
+        if (string.IsNullOrWhiteSpace(session.ApiConfig.BaseUrl))
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 的 API 基础 URL 为空，请先在设置页面配置 API 信息");
+        }
+
+        if (string.IsNullOrWhiteSpace(session.ApiConfig.ApiKey))
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 的 API 密钥为空，请先在设置页面配置 API 信息");
+        }
+
+        // 获取会话的最后两条消息（最后一条是用户消息，倒数第二条是助手消息）
+        var messages = await _messageRepository.GetLastMessagesAsync(sessionId, 2);
+        
+        if (messages.Count < 2)
+        {
+            throw new InvalidOperationException("没有足够的消息进行重新生成");
+        }
+
+        // 移除最后两条消息（用户消息和之前的助手消息）
+        await _messageRepository.DeleteRangeAsync(messages);
+
+        // 重新获取消息历史
+        var remainingMessages = await _messageRepository.GetBySessionIdAsync(sessionId);
+        
+        // 获取最后一条用户消息
+        var lastUserMessage = remainingMessages.LastOrDefault(m => m.Role == MessageRole.User);
+        if (lastUserMessage == null)
+        {
+            throw new InvalidOperationException("没有找到用户消息");
+        }
+
+        // 调用 OpenAI API 流式接口重新生成
+        var fullContent = new StringBuilder();
+        
+        await _openAIService.SendMessageStreamAsync(
+            session.ApiConfig.ApiKey,
+            session.ApiConfig.BaseUrl,
+            session.Model,
+            remainingMessages,
+            async chunk =>
+            {
+                if (chunk.Type == "content" && !string.IsNullOrEmpty(chunk.Content))
+                {
+                    fullContent.Append(chunk.Content);
+                }
+                await onChunk(chunk);
+            },
+            session.SystemPrompt,
+            session.Temperature,
+            session.MaxTokens);
+
+        var responseContent = fullContent.ToString();
+
+        // 保存新的助手消息
+        var assistantMessage = new Message
+        {
+            Id = Guid.NewGuid(),
+            SessionId = sessionId,
+            Role = MessageRole.Assistant,
+            Content = responseContent,
+            Model = session.Model,
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        await _messageRepository.AddAsync(assistantMessage);
+
+        // 发送完成标记
+        await onChunk(new StreamContentChunk
+        {
+            Type = "complete",
+            Content = responseContent
+        });
 
         return new SendMessageResponse
         {
