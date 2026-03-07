@@ -87,3 +87,14 @@ public class StreamContentChunk
     /// </summary>
     public string? Error { get; set; }
 }
+
+/// <summary>
+/// 发送消息请求
+/// </summary>
+public class SendMessageRequest
+{
+    /// <summary>
+    /// 消息内容
+    /// </summary>
+    public string Content { get; set; } = string.Empty;
+}

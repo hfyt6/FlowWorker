@@ -30,13 +30,15 @@ public class OpenAIService : IOpenAIService
     {
         var request = BuildRequest(messages, systemPrompt, model, temperature, maxTokens);
 
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl.TrimEnd('/')}/chat/completions")
+        // 构建完整的 API URL
+        var apiUrl = BuildApiUrl(baseUrl, "/chat/completions");
+
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, apiUrl)
         {
-            Content = JsonContent.Create(request, options: new JsonSerializerOptions { PropertyNamingPolicy = null })
+            Content = JsonContent.Create(request, options: new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower })
         };
 
         httpRequest.Headers.Add("Authorization", $"Bearer {apiKey}");
-        httpRequest.Headers.Add("Content-Type", "application/json");
 
         using var response = await _httpClient.SendAsync(httpRequest);
         response.EnsureSuccessStatusCode();
@@ -58,13 +60,15 @@ public class OpenAIService : IOpenAIService
         var request = BuildRequest(messages, systemPrompt, model, temperature, maxTokens);
         request.Stream = true;
 
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl.TrimEnd('/')}/chat/completions")
+        // 构建完整的 API URL
+        var apiUrl = BuildApiUrl(baseUrl, "/chat/completions");
+
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, apiUrl)
         {
-            Content = JsonContent.Create(request, options: new JsonSerializerOptions { PropertyNamingPolicy = null })
+            Content = JsonContent.Create(request, options: new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower })
         };
 
         httpRequest.Headers.Add("Authorization", $"Bearer {apiKey}");
-        httpRequest.Headers.Add("Content-Type", "application/json");
 
         using var response = await _httpClient.SendAsync(httpRequest);
         response.EnsureSuccessStatusCode();
@@ -116,7 +120,10 @@ public class OpenAIService : IOpenAIService
 
     public async Task<IReadOnlyList<string>> GetModelsAsync(string apiKey, string baseUrl)
     {
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl.TrimEnd('/')}/models");
+        // 构建完整的 API URL
+        var apiUrl = BuildApiUrl(baseUrl, "/models");
+
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Get, apiUrl);
         httpRequest.Headers.Add("Authorization", $"Bearer {apiKey}");
 
         using var response = await _httpClient.SendAsync(httpRequest);
@@ -166,6 +173,29 @@ public class OpenAIService : IOpenAIService
         }
 
         return request;
+    }
+
+    /// <summary>
+    /// 构建 API URL，处理 baseUrl 可能已包含路径的情况
+    /// </summary>
+    private string BuildApiUrl(string baseUrl, string endpoint)
+    {
+        var trimmedBaseUrl = baseUrl.TrimEnd('/');
+        
+        // 如果 baseUrl 已经包含完整的 endpoint 路径，直接返回
+        if (trimmedBaseUrl.EndsWith(endpoint))
+        {
+            return trimmedBaseUrl;
+        }
+        
+        // 如果 baseUrl 已经包含 /v1，则只添加 endpoint
+        if (trimmedBaseUrl.Contains("/v1"))
+        {
+            return $"{trimmedBaseUrl}{endpoint}";
+        }
+        
+        // 否则添加 /v1 + endpoint
+        return $"{trimmedBaseUrl}/v1{endpoint}";
     }
 }
 

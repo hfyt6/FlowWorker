@@ -98,6 +98,22 @@ public class MessageService : IMessageService
             throw new InvalidOperationException($"会话 {sessionId} 不存在");
         }
 
+        // 验证 API 配置
+        if (session.ApiConfig == null)
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 未配置 API 信息，请先在设置页面配置 API 信息");
+        }
+
+        if (string.IsNullOrWhiteSpace(session.ApiConfig.BaseUrl))
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 的 API 基础 URL 为空，请先在设置页面配置 API 信息");
+        }
+
+        if (string.IsNullOrWhiteSpace(session.ApiConfig.ApiKey))
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 的 API 密钥为空，请先在设置页面配置 API 信息");
+        }
+
         // 获取会话的历史消息
         var messages = await _messageRepository.GetBySessionIdAsync(sessionId);
         
@@ -111,12 +127,15 @@ public class MessageService : IMessageService
             CreatedAt = DateTime.UtcNow
         };
         
+        // 保存用户消息到数据库
+        await _messageRepository.AddAsync(userMessage);
+        
         var allMessages = messages.Concat(new[] { userMessage });
         
         // 调用 OpenAI API
         var responseContent = await _openAIService.SendMessageAsync(
-            session.ApiConfig?.ApiKey ?? string.Empty,
-            session.ApiConfig?.BaseUrl ?? string.Empty,
+            session.ApiConfig.ApiKey,
+            session.ApiConfig.BaseUrl,
             session.Model,
             allMessages,
             session.SystemPrompt,
@@ -152,6 +171,22 @@ public class MessageService : IMessageService
             throw new InvalidOperationException($"会话 {sessionId} 不存在");
         }
 
+        // 验证 API 配置
+        if (session.ApiConfig == null)
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 未配置 API 信息，请先在设置页面配置 API 信息");
+        }
+
+        if (string.IsNullOrWhiteSpace(session.ApiConfig.BaseUrl))
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 的 API 基础 URL 为空，请先在设置页面配置 API 信息");
+        }
+
+        if (string.IsNullOrWhiteSpace(session.ApiConfig.ApiKey))
+        {
+            throw new InvalidOperationException($"会话 {sessionId} 的 API 密钥为空，请先在设置页面配置 API 信息");
+        }
+
         // 获取会话的最后两条消息（最后一条是用户消息，倒数第二条是助手消息）
         var messages = await _messageRepository.GetLastMessagesAsync(sessionId, 2);
         
@@ -175,8 +210,8 @@ public class MessageService : IMessageService
 
         // 调用 OpenAI API 重新生成
         var responseContent = await _openAIService.SendMessageAsync(
-            session.ApiConfig?.ApiKey ?? string.Empty,
-            session.ApiConfig?.BaseUrl ?? string.Empty,
+            session.ApiConfig.ApiKey,
+            session.ApiConfig.BaseUrl,
             session.Model,
             remainingMessages,
             session.SystemPrompt,

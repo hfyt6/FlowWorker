@@ -72,12 +72,12 @@ public class MessagesController : ControllerBase
     /// 发送消息到 AI
     /// </summary>
     /// <param name="sessionId">会话 ID</param>
-    /// <param name="content">消息内容</param>
+    /// <param name="request">发送消息请求</param>
     /// <returns>AI 响应</returns>
     [HttpPost("send")]
-    public async Task<ActionResult<SendMessageResponse>> SendMessage(Guid sessionId, [FromBody] string content)
+    public async Task<ActionResult<SendMessageResponse>> SendMessage(Guid sessionId, [FromBody] SendMessageRequest request)
     {
-        var response = await _messageService.SendMessageAsync(sessionId, content);
+        var response = await _messageService.SendMessageAsync(sessionId, request.Content);
         return Ok(response);
     }
 

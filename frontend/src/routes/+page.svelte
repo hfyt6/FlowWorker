@@ -1,44 +1,76 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { sessions, currentSession, loading, error, fetchSessions, deleteSession, searchSessions } from '$lib/stores/sessionStore';
+    import { sessions, currentSession, loading, error, fetchSessions, deleteSession, searchSessions, createSession } from '$lib/stores/sessionStore';
     import { goto } from '$app/navigation';
     import { page } from '$app/state';
+    import { apiConfigs, fetchConfigs } from '$lib/stores/apiConfigStore';
+    import SelectApiConfigModal from '$lib/components/SelectApiConfigModal.svelte';
+    import type { ApiConfigListItemDto } from '$lib/types/apiConfig';
 
     // State
     let searchQuery = '';
     let isDeleting = false;
     let deleteId = '';
+    let isModalOpen = false;
+    let selectedConfig: ApiConfigListItemDto | null = null;
 
     // Component lifecycle
     onMount(() => {
         fetchSessions();
+        fetchConfigs();
     });
 
     // Handlers
     async function handleCreateSession() {
-        try {
-            const response = await fetch('/api/v1/sessions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
+        // 检查是否有可用的 API 配置
+        const configs = $apiConfigs;
+        if (configs.length === 0) {
+            alert('请先在设置页面配置 API 信息');
+            goto('/settings');
+            return;
+        }
+        
+        // 如果只有一个配置，直接使用
+        if (configs.length === 1) {
+            try {
+                const id = await createSession({
                     title: 'New Session',
-                    apiConfigId: '',
-                    model: 'gpt-3.5-turbo',
+                    apiConfigId: configs[0].id,
+                    model: configs[0].model,
                     systemPrompt: 'You are a helpful assistant.',
                     temperature: 0.7,
                     maxTokens: null
-                })
-            });
-
-            if (response.ok) {
-                const id = await response.text();
+                });
                 goto(`/sessions/${id}`);
+            } catch (err) {
+                console.error('Failed to create session:', err);
             }
+        } else {
+            // 显示选择弹窗
+            isModalOpen = true;
+        }
+    }
+
+    async function handleSelectConfig(config: ApiConfigListItemDto) {
+        selectedConfig = config;
+        try {
+            const id = await createSession({
+                title: 'New Session',
+                apiConfigId: config.id,
+                model: config.model,
+                systemPrompt: 'You are a helpful assistant.',
+                temperature: 0.7,
+                maxTokens: null
+            });
+            goto(`/sessions/${id}`);
         } catch (err) {
             console.error('Failed to create session:', err);
         }
+    }
+
+    function closeModal() {
+        isModalOpen = false;
+        selectedConfig = null;
     }
 
     async function handleDeleteSession(id: string, e: MouseEvent) {
@@ -144,6 +176,12 @@
             {/each}
         </div>
     {/if}
+
+    <SelectApiConfigModal 
+        isOpen={isModalOpen} 
+        onClose={closeModal} 
+        onSelect={handleSelectConfig} 
+    />
 </div>
 
 <style>

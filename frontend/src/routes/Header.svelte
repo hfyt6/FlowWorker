@@ -2,14 +2,10 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import github from '$lib/images/github.svg';
-	import logo from '$lib/images/svelte-logo.svg';
 </script>
 
 <header>
 	<div class="corner">
-		<a href="https://svelte.dev/docs/kit">
-			<img src={logo} alt="SvelteKit" />
-		</a>
 	</div>
 
 	<nav>
