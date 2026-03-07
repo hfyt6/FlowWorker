@@ -12,10 +12,12 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.2">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="System.Net.Http.Json" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FlowWorker.Shared\FlowWorker.Shared.csproj" />
+    <ProjectReference Include="..\FlowWorker.Core\FlowWorker.Core.csproj" />
   </ItemGroup>
 
 </Project>

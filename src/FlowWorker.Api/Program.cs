@@ -1,4 +1,9 @@
+using FlowWorker.Core.Interfaces;
+using FlowWorker.Core.Repositories;
+using FlowWorker.Core.Services;
 using FlowWorker.Infrastructure;
+using FlowWorker.Infrastructure.OpenAI;
+using FlowWorker.Infrastructure.Repositories;
 using FlowWorker.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -21,6 +26,20 @@ builder.Services.AddOpenApi();
 // 配置 Entity Framework Core
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=flowworker.db"));
+
+// 配置 HttpClient
+builder.Services.AddHttpClient();
+
+// 配置仓储层
+builder.Services.AddScoped<ISessionRepository, SessionRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<IApiConfigRepository, ApiConfigRepository>();
+
+// 配置服务层
+builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<IApiConfigService, ApiConfigService>();
+builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 
 // 配置数据库初始化服务
 builder.Services.AddScoped<DatabaseInitializer>();
