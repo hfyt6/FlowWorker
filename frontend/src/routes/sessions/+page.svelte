@@ -52,11 +52,11 @@
         }
     }
 
-    async function handleSelectConfig(config: ApiConfigListItemDto) {
+    async function handleSelectConfig(config: ApiConfigListItemDto, sessionName: string) {
         selectedConfig = config;
         try {
             const id = await createSession({
-                title: 'New Session',
+                title: sessionName,
                 apiConfigId: config.id,
                 model: config.model,
                 systemPrompt: 'You are a helpful assistant.',
@@ -190,6 +190,8 @@
         max-width: 800px;
         margin: 0 auto;
         padding: 1rem;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        min-height: 100vh;
     }
 
     .header {
@@ -200,9 +202,7 @@
     }
 
     .header h1 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #1f2937;
+        display: none;
     }
 
     .btn-primary {
@@ -230,9 +230,10 @@
 
     .error-banner {
         padding: 0.75rem;
-        background-color: #fee2e2;
+        background-color: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.2);
         border-radius: 0.5rem;
-        color: #991b1b;
+        color: #f87171;
         margin-bottom: 1rem;
     }
 
@@ -245,28 +246,36 @@
     .search-input {
         flex: 1;
         padding: 0.5rem 1rem;
-        border: 1px solid #e5e7eb;
+        border: 1px solid rgba(96, 165, 250, 0.2);
         border-radius: 0.5rem;
         font-size: 0.875rem;
         outline: none;
         transition: border-color 0.2s;
+        background-color: #1e293b;
+        color: #f1f5f9;
     }
 
     .search-input:focus {
-        border-color: #3b82f6;
+        border-color: #60a5fa;
+    }
+
+    .search-input::placeholder {
+        color: #64748b;
     }
 
     .btn-icon {
         padding: 0.5rem;
-        background-color: #f3f4f6;
-        border: none;
+        background-color: #1e293b;
+        border: 1px solid rgba(96, 165, 250, 0.2);
         border-radius: 0.5rem;
         cursor: pointer;
-        transition: background-color 0.2s;
+        transition: all 0.2s;
+        color: #94a3b8;
     }
 
     .btn-icon:hover {
-        background-color: #e5e7eb;
+        background-color: rgba(96, 165, 250, 0.15);
+        color: #60a5fa;
     }
 
     .loading-spinner {
@@ -275,14 +284,14 @@
         align-items: center;
         justify-content: center;
         padding: 3rem;
-        color: #6b7280;
+        color: #94a3b8;
     }
 
     .spinner {
         width: 2rem;
         height: 2rem;
-        border: 3px solid #f3f4f6;
-        border-top-color: #3b82f6;
+        border: 3px solid rgba(96, 165, 250, 0.2);
+        border-top-color: #60a5fa;
         border-radius: 50%;
         animation: spin 1s linear infinite;
         margin-bottom: 1rem;
@@ -300,7 +309,7 @@
         align-items: center;
         justify-content: center;
         padding: 3rem;
-        color: #6b7280;
+        color: #94a3b8;
     }
 
     .empty-icon {
@@ -315,7 +324,7 @@
     }
 
     .btn-link {
-        color: #3b82f6;
+        color: #60a5fa;
         text-decoration: none;
         font-weight: 500;
         cursor: pointer;
@@ -336,16 +345,16 @@
         justify-content: space-between;
         align-items: center;
         padding: 1rem;
-        background-color: white;
-        border: 1px solid #e5e7eb;
+        background-color: #1e293b;
+        border: 1px solid rgba(96, 165, 250, 0.2);
         border-radius: 0.5rem;
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .session-item:hover {
-        border-color: #3b82f6;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-color: #60a5fa;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
     .session-info {
@@ -356,7 +365,7 @@
     .session-title {
         font-size: 1rem;
         font-weight: 600;
-        color: #1f2937;
+        color: #f1f5f9;
         margin: 0 0 0.5rem 0;
         white-space: nowrap;
         overflow: hidden;
@@ -368,36 +377,36 @@
         align-items: center;
         gap: 0.5rem;
         font-size: 0.75rem;
-        color: #6b7280;
+        color: #94a3b8;
         flex-wrap: wrap;
     }
 
     .model {
-        color: #3b82f6;
+        color: #60a5fa;
     }
 
     .divider {
-        color: #d1d5db;
+        color: #64748b;
     }
 
     .time {
-        color: #9ca3af;
+        color: #64748b;
     }
 
     .btn-delete {
         padding: 0.5rem;
         background-color: transparent;
-        border: 1px solid #e5e7eb;
+        border: 1px solid rgba(96, 165, 250, 0.2);
         border-radius: 0.5rem;
         cursor: pointer;
         transition: all 0.2s;
-        color: #6b7280;
+        color: #94a3b8;
     }
 
     .btn-delete:hover {
-        background-color: #fee2e2;
-        border-color: #fca5a5;
-        color: #991b1b;
+        background-color: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #f87171;
     }
 
     .btn-delete:disabled {

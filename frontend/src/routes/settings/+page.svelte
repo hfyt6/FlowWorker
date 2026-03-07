@@ -97,7 +97,7 @@
 
 <div class="settings-page">
     <div class="header">
-        <h1>API 配置管理</h1>
+        <!-- <h1>API 配置管理</h1> -->
         <button class="btn-primary" on:click={handleAddConfig}>
             <span class="icon">+</span>
             添加配置
@@ -235,6 +235,8 @@
         max-width: 800px;
         margin: 0 auto;
         padding: 1rem;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        min-height: 100vh;
     }
 
     .header {
@@ -247,7 +249,7 @@
     .header h1 {
         font-size: 1.5rem;
         font-weight: 600;
-        color: #1f2937;
+        color: #f1f5f9;
     }
 
     .btn-primary {
@@ -275,9 +277,10 @@
 
     .error-banner {
         padding: 0.75rem;
-        background-color: #fee2e2;
+        background-color: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.2);
         border-radius: 0.5rem;
-        color: #991b1b;
+        color: #f87171;
         margin-bottom: 1rem;
     }
 
@@ -287,14 +290,14 @@
         align-items: center;
         justify-content: center;
         padding: 3rem;
-        color: #6b7280;
+        color: #94a3b8;
     }
 
     .spinner {
         width: 2rem;
         height: 2rem;
-        border: 3px solid #f3f4f6;
-        border-top-color: #3b82f6;
+        border: 3px solid rgba(96, 165, 250, 0.2);
+        border-top-color: #60a5fa;
         border-radius: 50%;
         animation: spin 1s linear infinite;
         margin-bottom: 1rem;
@@ -312,7 +315,7 @@
         align-items: center;
         justify-content: center;
         padding: 3rem;
-        color: #6b7280;
+        color: #94a3b8;
     }
 
     .empty-icon {
@@ -327,7 +330,7 @@
     }
 
     .btn-link {
-        color: #3b82f6;
+        color: #60a5fa;
         text-decoration: none;
         font-weight: 500;
         cursor: pointer;
@@ -345,9 +348,15 @@
 
     .config-item {
         padding: 1.5rem;
-        background-color: white;
-        border: 1px solid #e5e7eb;
+        background-color: #1e293b;
+        border: 1px solid rgba(96, 165, 250, 0.2);
         border-radius: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .config-item:hover {
+        border-color: #60a5fa;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
     .config-info {
@@ -365,7 +374,7 @@
     .config-name {
         font-size: 1.125rem;
         font-weight: 600;
-        color: #1f2937;
+        color: #f1f5f9;
         margin: 0;
     }
 
@@ -384,8 +393,8 @@
         flex-direction: column;
         gap: 0.75rem;
         padding: 1rem 0;
-        border-top: 1px solid #f3f4f6;
-        border-bottom: 1px solid #f3f4f6;
+        border-top: 1px solid rgba(96, 165, 250, 0.15);
+        border-bottom: 1px solid rgba(96, 165, 250, 0.15);
     }
 
     .detail-item {
@@ -393,12 +402,12 @@
         align-items: center;
         gap: 0.5rem;
         font-size: 0.875rem;
-        color: #6b7280;
+        color: #94a3b8;
     }
 
     .label {
         font-weight: 500;
-        color: #374151;
+        color: #cbd5e1;
         min-width: 80px;
     }
 
@@ -406,6 +415,7 @@
         flex: 1;
         word-break: break-all;
         font-family: 'Courier New', Courier, monospace;
+        color: #e2e8f0;
     }
 
     .config-actions {
@@ -416,32 +426,34 @@
 
     .btn-action {
         padding: 0.5rem 1rem;
-        background-color: #f3f4f6;
-        border: none;
+        background-color: rgba(96, 165, 250, 0.15);
+        border: 1px solid rgba(96, 165, 250, 0.2);
         border-radius: 0.5rem;
         font-size: 0.875rem;
         cursor: pointer;
-        transition: background-color 0.2s;
-        color: #374151;
+        transition: all 0.2s;
+        color: #60a5fa;
     }
 
     .btn-action:hover {
-        background-color: #e5e7eb;
+        background-color: rgba(96, 165, 250, 0.25);
+        border-color: #60a5fa;
     }
 
     .btn-delete {
         padding: 0.5rem 1rem;
-        background-color: #fee2e2;
-        border: none;
+        background-color: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.2);
         border-radius: 0.5rem;
         font-size: 0.875rem;
         cursor: pointer;
-        transition: background-color 0.2s;
-        color: #991b1b;
+        transition: all 0.2s;
+        color: #f87171;
     }
 
     .btn-delete:hover:not(:disabled) {
-        background-color: #fecaca;
+        background-color: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.3);
     }
 
     .btn-delete:disabled {
@@ -455,7 +467,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: rgba(0, 0, 0, 0.5);
+        background-color: rgba(0, 0, 0, 0.7);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -464,18 +476,19 @@
     }
 
     .modal {
-        background-color: white;
+        background-color: #1e293b;
+        border: 1px solid rgba(96, 165, 250, 0.2);
         border-radius: 0.5rem;
         padding: 2rem;
         width: 100%;
         max-width: 500px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     }
 
     .modal h2 {
         font-size: 1.25rem;
         font-weight: 600;
-        color: #1f2937;
+        color: #f1f5f9;
         margin: 0 0 1.5rem 0;
     }
 
@@ -488,21 +501,27 @@
         margin-bottom: 0.5rem;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #374151;
+        color: #cbd5e1;
     }
 
     .form-group input {
         width: 100%;
         padding: 0.5rem 0.75rem;
-        border: 1px solid #e5e7eb;
+        background-color: #0f172a;
+        border: 1px solid rgba(96, 165, 250, 0.2);
         border-radius: 0.5rem;
         font-size: 0.875rem;
         outline: none;
         transition: border-color 0.2s;
+        color: #f1f5f9;
     }
 
     .form-group input:focus {
-        border-color: #3b82f6;
+        border-color: #60a5fa;
+    }
+
+    .form-group input::placeholder {
+        color: #64748b;
     }
 
     .form-actions {
@@ -514,17 +533,18 @@
 
     .btn-secondary {
         padding: 0.5rem 1rem;
-        background-color: #f3f4f6;
-        border: none;
+        background-color: rgba(96, 165, 250, 0.15);
+        border: 1px solid rgba(96, 165, 250, 0.2);
         border-radius: 0.5rem;
         font-size: 0.875rem;
         cursor: pointer;
-        transition: background-color 0.2s;
-        color: #374151;
+        transition: all 0.2s;
+        color: #60a5fa;
     }
 
     .btn-secondary:hover {
-        background-color: #e5e7eb;
+        background-color: rgba(96, 165, 250, 0.25);
+        border-color: #60a5fa;
     }
 
     @media (max-width: 640px) {

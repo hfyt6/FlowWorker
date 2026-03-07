@@ -51,11 +51,11 @@
         }
     }
 
-    async function handleSelectConfig(config: ApiConfigListItemDto) {
+    async function handleSelectConfig(config: ApiConfigListItemDto, sessionName: string) {
         selectedConfig = config;
         try {
             const id = await createSession({
-                title: 'New Session',
+                title: sessionName,
                 apiConfigId: config.id,
                 model: config.model,
                 systemPrompt: 'You are a helpful assistant.',
@@ -108,7 +108,7 @@
 
 <div class="sessions-page">
     <div class="header">
-        <h1>会话列表</h1>
+        <!-- <h1>会话列表</h1> -->
         <button class="btn-primary" on:click={handleCreateSession}>
             <span class="icon">+</span>
             新建会话
@@ -201,7 +201,7 @@
     .header h1 {
         font-size: 1.5rem;
         font-weight: 600;
-        color: #1f2937;
+        color: rgba(255, 255, 255, 0.9);
     }
 
     .btn-primary {
@@ -229,7 +229,7 @@
 
     .error-banner {
         padding: 0.75rem;
-        background-color: #fee2e2;
+        background-color: rgba(254, 226, 226, 0.9);
         border-radius: 0.5rem;
         color: #991b1b;
         margin-bottom: 1rem;
@@ -244,28 +244,37 @@
     .search-input {
         flex: 1;
         padding: 0.5rem 1rem;
-        border: 1px solid #e5e7eb;
+        border: 1px solid rgba(96, 165, 250, 0.3);
         border-radius: 0.5rem;
         font-size: 0.875rem;
         outline: none;
-        transition: border-color 0.2s;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        background-color: rgba(30, 41, 59, 0.8);
+        color: rgba(255, 255, 255, 0.9);
     }
 
     .search-input:focus {
-        border-color: #3b82f6;
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+    }
+
+    .search-input::placeholder {
+        color: rgba(255, 255, 255, 0.4);
     }
 
     .btn-icon {
         padding: 0.5rem;
-        background-color: #f3f4f6;
-        border: none;
+        background-color: rgba(30, 41, 59, 0.8);
+        border: 1px solid rgba(96, 165, 250, 0.3);
         border-radius: 0.5rem;
         cursor: pointer;
-        transition: background-color 0.2s;
+        transition: all 0.2s;
+        color: rgba(255, 255, 255, 0.9);
     }
 
     .btn-icon:hover {
-        background-color: #e5e7eb;
+        background-color: rgba(51, 65, 85, 0.9);
+        border-color: rgba(96, 165, 250, 0.5);
     }
 
     .loading-spinner {
@@ -335,16 +344,17 @@
         justify-content: space-between;
         align-items: center;
         padding: 1rem;
-        background-color: white;
-        border: 1px solid #e5e7eb;
+        background-color: rgba(30, 41, 59, 0.8);
+        border: 1px solid rgba(96, 165, 250, 0.2);
         border-radius: 0.5rem;
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .session-item:hover {
-        border-color: #3b82f6;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-color: rgba(96, 165, 250, 0.5);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        background-color: rgba(51, 65, 85, 0.9);
     }
 
     .session-info {
@@ -355,7 +365,7 @@
     .session-title {
         font-size: 1rem;
         font-weight: 600;
-        color: #1f2937;
+        color: rgba(255, 255, 255, 0.9);
         margin: 0 0 0.5rem 0;
         white-space: nowrap;
         overflow: hidden;
@@ -367,35 +377,35 @@
         align-items: center;
         gap: 0.5rem;
         font-size: 0.75rem;
-        color: #6b7280;
+        color: rgba(255, 255, 255, 0.6);
         flex-wrap: wrap;
     }
 
     .model {
-        color: #3b82f6;
+        color: #60a5fa;
     }
 
     .divider {
-        color: #d1d5db;
+        color: rgba(255, 255, 255, 0.3);
     }
 
     .time {
-        color: #9ca3af;
+        color: rgba(255, 255, 255, 0.5);
     }
 
     .btn-delete {
         padding: 0.5rem;
         background-color: transparent;
-        border: 1px solid #e5e7eb;
+        border: 1px solid rgba(96, 165, 250, 0.2);
         border-radius: 0.5rem;
         cursor: pointer;
         transition: all 0.2s;
-        color: #6b7280;
+        color: rgba(255, 255, 255, 0.6);
     }
 
     .btn-delete:hover {
-        background-color: #fee2e2;
-        border-color: #fca5a5;
+        background-color: rgba(254, 226, 226, 0.9);
+        border-color: rgba(252, 165, 165, 0.8);
         color: #991b1b;
     }
 

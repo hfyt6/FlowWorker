@@ -5,34 +5,30 @@
 </script>
 
 <header>
-	<div class="corner">
+	<div class="logo">
+		<a href={resolve('/')} class="logo-link">
+			<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M12 2L2 7l10 5 10-5-10-5z"/>
+				<path d="M2 17l10 5 10-5"/>
+				<path d="M2 12l10 5 10-5"/>
+			</svg>
+			<span class="logo-text">FlowWorker</span>
+		</a>
 	</div>
 
 	<nav>
-		<svg viewBox="0 0 2 3" aria-hidden="true">
-			<path d="M0,0 L1,2 C1.5,3 1.5,3 2,3 L2,0 Z" />
-		</svg>
 		<ul>
 			<li aria-current={page.url.pathname === '/' ? 'page' : undefined}>
 				<a href={resolve('/')}>Home</a>
-			</li>
-			<li aria-current={page.url.pathname === '/about' ? 'page' : undefined}>
-				<a href={resolve('/about')}>About</a>
-			</li>
-			<li aria-current={page.url.pathname.startsWith('/sverdle') ? 'page' : undefined}>
-				<a href={resolve('/sverdle')}>Sverdle</a>
 			</li>
 			<li aria-current={page.url.pathname.startsWith('/settings') ? 'page' : undefined}>
 				<a href={resolve('/settings')}>Settings</a>
 			</li>
 		</ul>
-		<svg viewBox="0 0 2 3" aria-hidden="true">
-			<path d="M0,0 L0,3 C0.5,3 0.5,3 1,2 L2,0 Z" />
-		</svg>
 	</nav>
 
 	<div class="corner">
-		<a href="https://github.com/sveltejs/kit">
+		<a href="https://github.com/sveltejs/kit" class="github-link">
 			<img src={github} alt="GitHub" />
 		</a>
 	</div>
@@ -42,11 +38,44 @@
 	header {
 		display: flex;
 		justify-content: space-between;
+		align-items: center;
+		padding: 0.75rem 1.5rem;
+		background: rgba(30, 41, 59, 0.8);
+		backdrop-filter: blur(12px);
+		border-bottom: 1px solid rgba(96, 165, 250, 0.1);
+	}
+
+	.logo {
+		display: flex;
+		align-items: center;
+	}
+
+	.logo-link {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--color-text);
+		text-decoration: none;
+		transition: all 0.2s ease;
+	}
+
+	.logo-link:hover {
+		color: var(--color-theme-1);
+	}
+
+	.logo-link svg {
+		color: var(--color-theme-1);
+	}
+
+	.logo-text {
+		font-size: 1.1rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
 	}
 
 	.corner {
-		width: 3em;
-		height: 3em;
+		width: 2.5em;
+		height: 2.5em;
 	}
 
 	.corner a {
@@ -57,73 +86,84 @@
 		height: 100%;
 	}
 
+	.github-link {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.5em;
+		height: 2.5em;
+		border-radius: 50%;
+		background: rgba(96, 165, 250, 0.1);
+		transition: all 0.2s ease;
+	}
+
+	.github-link:hover {
+		background: rgba(96, 165, 250, 0.2);
+		transform: translateY(-1px);
+	}
+
 	.corner img {
-		width: 2em;
-		height: 2em;
+		width: 1.5em;
+		height: 1.5em;
 		object-fit: contain;
+		filter: invert(1);
+		opacity: 0.8;
 	}
 
 	nav {
 		display: flex;
 		justify-content: center;
-		--background: rgba(255, 255, 255, 0.7);
 	}
 
-	svg {
-		width: 2em;
-		height: 3em;
-		display: block;
-	}
-
-	path {
-		fill: var(--background);
-	}
-
-	ul {
-		position: relative;
-		padding: 0;
-		margin: 0;
-		height: 3em;
+	nav ul {
 		display: flex;
-		justify-content: center;
-		align-items: center;
+		gap: 0.5rem;
+		padding: 0.25rem;
+		margin: 0;
 		list-style: none;
-		background: var(--background);
-		background-size: contain;
+		background: rgba(15, 23, 42, 0.6);
+		border-radius: 2rem;
+		border: 1px solid rgba(96, 165, 250, 0.15);
 	}
 
-	li {
+	nav li {
 		position: relative;
-		height: 100%;
 	}
 
-	li[aria-current='page']::before {
-		--size: 6px;
-		content: '';
-		width: 0;
-		height: 0;
-		position: absolute;
-		top: 0;
-		left: calc(50% - var(--size));
-		border: var(--size) solid transparent;
-		border-top: var(--size) solid var(--color-theme-1);
+	nav li[aria-current='page'] a {
+		background: rgba(96, 165, 250, 0.2);
+		color: var(--color-theme-1);
 	}
 
 	nav a {
 		display: flex;
-		height: 100%;
 		align-items: center;
-		padding: 0 0.5rem;
-		color: var(--color-text);
-		font-weight: 700;
-		font-size: 0.8rem;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
+		padding: 0.5rem 1.25rem;
+		color: var(--color-text-muted);
+		font-weight: 500;
+		font-size: 0.875rem;
 		text-decoration: none;
-		transition: color 0.2s linear;
+		border-radius: 1.5rem;
+		transition: all 0.2s ease;
 	}
 
-	a:hover {
-		color: var(--color-theme-1);
+	nav a:hover {
+		color: var(--color-text);
+		background: rgba(96, 165, 250, 0.1);
+	}
+
+	@media (max-width: 640px) {
+		header {
+			padding: 0.75rem 1rem;
+		}
+
+		.logo-text {
+			display: none;
+		}
+
+		nav a {
+			padding: 0.5rem 1rem;
+			font-size: 0.8rem;
+		}
 	}
 </style>
