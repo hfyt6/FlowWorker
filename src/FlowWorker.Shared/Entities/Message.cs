@@ -44,7 +44,12 @@ public class Message
     public Guid SessionId { get; set; }
 
     /// <summary>
-    /// 角色（user/assistant/system/tool）
+    /// 发送者ID（关联Member）
+    /// </summary>
+    public Guid MemberId { get; set; }
+
+    /// <summary>
+    /// 角色（user/assistant/system/tool）- 保留用于兼容OpenAI API
     /// </summary>
     public MessageRole Role { get; set; }
 
@@ -64,6 +69,16 @@ public class Message
     public string? Model { get; set; }
 
     /// <summary>
+    /// 回复的消息ID
+    /// </summary>
+    public Guid? ReplyToMessageId { get; set; }
+
+    /// <summary>
+    /// 调用深度（防循环）
+    /// </summary>
+    public int CallDepth { get; set; } = 0;
+
+    /// <summary>
     /// 创建时间
     /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -77,5 +92,11 @@ public class Message
     /// 关联的会话
     /// </summary>
     [JsonIgnore]
-    public Session? Session { get; set; }
+    public virtual Session? Session { get; set; }
+
+    /// <summary>
+    /// 关联的发送者
+    /// </summary>
+    [JsonIgnore]
+    public virtual Member? Member { get; set; }
 }

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FlowWorker.Shared.Enums;
 
 namespace FlowWorker.Shared.Entities;
 
@@ -16,6 +17,16 @@ public class Session
     /// 会话标题
     /// </summary>
     public string Title { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 会话类型（Single/Group）
+    /// </summary>
+    public SessionType Type { get; set; } = SessionType.Single;
+
+    /// <summary>
+    /// 创建者（User Member ID）
+    /// </summary>
+    public Guid CreatedBy { get; set; }
 
     /// <summary>
     /// 关联的 API 配置 ID
@@ -68,4 +79,10 @@ public class Session
     /// </summary>
     [JsonIgnore]
     public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
+
+    /// <summary>
+    /// 关联的会话成员列表
+    /// </summary>
+    [JsonIgnore]
+    public virtual ICollection<SessionMember> SessionMembers { get; set; } = new List<SessionMember>();
 }

@@ -111,4 +111,28 @@ public class MessageRepository : IMessageRepository
         _dbSet.RemoveRange(messages);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<IReadOnlyList<Message>> GetByMemberIdAsync(Guid memberId)
+    {
+        return await _dbSet
+            .Where(m => m.MemberId == memberId)
+            .OrderBy(m => m.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Message>> GetBySessionAndMemberAsync(Guid sessionId, Guid memberId)
+    {
+        return await _dbSet
+            .Where(m => m.SessionId == sessionId && m.MemberId == memberId)
+            .OrderBy(m => m.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Message>> GetByCallDepthAsync(Guid sessionId, int callDepth)
+    {
+        return await _dbSet
+            .Where(m => m.SessionId == sessionId && m.CallDepth == callDepth)
+            .OrderBy(m => m.CreatedAt)
+            .ToListAsync();
+    }
 }

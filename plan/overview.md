@@ -10,25 +10,25 @@
 
 ### 1.1 功能需求
 
-#### 对话者系统（用户与AI统一抽象）
+#### 成员系统（用户与AI统一抽象）
 
-**对话者（Participant）概念**
-- **用户对话者**：人类用户，通过界面输入消息
-- **AI对话者**：AI助手，根据配置的角色和能力响应消息
-- **统一抽象**：所有对话者都实现相同的接口，支持发送/接收消息
+**成员（Member）概念**
+- **用户成员**：人类用户，通过界面输入消息
+- **AI成员**：AI助手，根据配置的角色和能力响应消息
+- **统一抽象**：所有成员都实现相同的接口，支持发送/接收消息
 
-**对话者属性**
+**成员属性**
 - `Id`：唯一标识符
 - `Name`：显示名称
 - `Type`：类型（User/AI）
-- `Role`：角色（仅AI对话者，如coder、ui-designer等）
+- `Role`：角色（仅AI成员，如coder、ui-designer等）
 - `Avatar`：头像
 - `Status`：在线/离线/忙碌状态
 
 #### 角色系统
 
 **角色定义**
-每个AI对话者可以配置一个角色，决定其功能和行为：
+每个AI成员可以配置一个角色，决定其功能和行为：
 
 | 角色 | 标识 | 功能描述 |
 |------|------|----------|
@@ -53,7 +53,7 @@
 #### 群聊系统
 
 **群聊概念**
-- 允许多个对话者（用户+多个AI）参与同一会话
+- 允许多个成员（用户+多个AI）参与同一会话
 - 每个群聊有独立的对话历史和上下文
 
 **防循环调用机制（重要）**
@@ -71,7 +71,7 @@
 系统解析消息中的@提及
     │
     ▼
-被@的AI对话者响应（消耗1个调用令牌）
+被@的AI成员响应（消耗1个调用令牌）
     │
     ▼
 AI响应中如包含@其他AI，则被@的AI可继续响应（深度+1）
@@ -82,7 +82,7 @@ AI响应中如包含@其他AI，则被@的AI可继续响应（深度+1）
 
 #### 会话管理
 - **创建会话**：创建新的对话会话，设置标题、选择AI模型、配置系统提示词
-- **群聊会话**：创建群聊，邀请多个AI对话者参与
+- **群聊会话**：创建群聊，邀请多个AI成员参与
 - **会话列表**：展示所有会话，支持按时间排序、搜索和筛选
 - **会话详情**：查看会话中的完整对话记录
 - **会话编辑**：修改会话标题、模型配置、系统提示词等属性
@@ -184,7 +184,7 @@ AI响应中如包含@其他AI，则被@的AI可继续响应（深度+1）
 ┌─────────────────────────────────────────────────────────────┐
 │                        业务逻辑层                            │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐   │
-│  │SessionService│  │MessageService│  │ParticipantService│   │
+│  │SessionService│  │MessageService│  │MemberService│   │
 │  └──────────────┘  └──────────────┘  └──────────────────┘   │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐   │
 │  │RoleService   │  │GroupChatSvc  │  │OpenAIService     │   │
@@ -222,7 +222,7 @@ AI响应中如包含@其他AI，则被@的AI可继续响应（深度+1）
 │  ┌─────────────────────────┐                                     │
 │  │   MessageRouterService  │                                     │
 │  │   - 解析@提及             │                                     │
-│  │   - 确定目标AI对话者       │                                     │
+│  │   - 确定目标AI成员       │                                     │
 │  │   - 检查调用令牌余额        │                                     │
 │  └─────────────────────────┘                                     │
 │              │                                                   │
@@ -327,7 +327,7 @@ AI响应中如包含@其他AI，则被@的AI可继续响应（深度+1）
 
 ### 4.1 核心数据表结构
 
-#### Participants 表（对话者表）
+#### Members 表（成员表）
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | Id | GUID | 主键 |
@@ -359,17 +359,17 @@ AI响应中如包含@其他AI，则被@的AI可继续响应（深度+1）
 | Id | GUID | 主键 |
 | Title | string | 会话标题 |
 | Type | enum | 类型（Single=单聊, Group=群聊） |
-| CreatedBy | GUID | 创建者（User Participant ID） |
+| CreatedBy | GUID | 创建者（User Member ID） |
 | CreatedAt | datetime | 创建时间 |
 | UpdatedAt | datetime | 更新时间 |
 | Metadata | json | 扩展元数据 |
 
-#### SessionParticipants 表（会话参与者关联表）
+#### SessionMembers 表（会话参与者关联表）
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | Id | GUID | 主键 |
 | SessionId | GUID | 会话ID |
-| ParticipantId | GUID | 对话者ID |
+| MemberId | GUID | 成员ID |
 | JoinedAt | datetime | 加入时间 |
 | IsActive | bool | 是否活跃 |
 
@@ -378,7 +378,7 @@ AI响应中如包含@其他AI，则被@的AI可继续响应（深度+1）
 |------|------|------|
 | Id | GUID | 主键 |
 | SessionId | GUID | 关联的会话ID |
-| ParticipantId | GUID | 发送者ID |
+| MemberId | GUID | 发送者ID |
 | Content | string | 消息内容 |
 | Tokens | int? | 消耗的Token数 |
 | Model | string? | 使用的模型 |
@@ -401,7 +401,7 @@ AI响应中如包含@其他AI，则被@的AI可继续响应（深度+1）
 ### 4.2 实体关系
 
 ```
-Participants (1) ────── (N) SessionParticipants (N) ────── (1) Sessions
+Members (1) ────── (N) SessionMembers (N) ────── (1) Sessions
       │                                                        │
       │ (AI类型)                                               │
       ▼                                                        ▼
@@ -410,7 +410,7 @@ Roles (1)                                              Messages (N)
       └────── (N) ApiConfigs
 
 Sessions (1) ────── (N) Messages
-Participants (1) ────── (N) Messages
+Members (1) ────── (N) Messages
 ```
 
 ---
@@ -419,14 +419,14 @@ Participants (1) ────── (N) Messages
 
 ### 5.1 RESTful API端点
 
-#### 对话者管理
+#### 成员管理
 | 方法 | 端点 | 描述 |
 |------|------|------|
-| GET | `/api/v1/participants` | 获取对话者列表 |
-| POST | `/api/v1/participants` | 创建AI对话者 |
-| GET | `/api/v1/participants/{id}` | 获取对话者详情 |
-| PUT | `/api/v1/participants/{id}` | 更新对话者信息 |
-| DELETE | `/api/v1/participants/{id}` | 删除AI对话者 |
+| GET | `/api/v1/members` | 获取成员列表 |
+| POST | `/api/v1/members` | 创建AI成员 |
+| GET | `/api/v1/members/{id}` | 获取成员详情 |
+| PUT | `/api/v1/members/{id}` | 更新成员信息 |
+| DELETE | `/api/v1/members/{id}` | 删除AI成员 |
 
 #### 角色管理
 | 方法 | 端点 | 描述 |
@@ -445,8 +445,8 @@ Participants (1) ────── (N) Messages
 | GET | `/api/v1/sessions/{id}` | 获取会话详情 |
 | PUT | `/api/v1/sessions/{id}` | 更新会话信息 |
 | DELETE | `/api/v1/sessions/{id}` | 删除会话 |
-| POST | `/api/v1/sessions/{id}/participants` | 添加参与者 |
-| DELETE | `/api/v1/sessions/{id}/participants/{pid}` | 移除参与者 |
+| POST | `/api/v1/sessions/{id}/members` | 添加参与者 |
+| DELETE | `/api/v1/sessions/{id}/members/{pid}` | 移除参与者 |
 | POST | `/api/v1/sessions/{id}/export` | 导出会话 |
 
 #### 消息管理
@@ -484,7 +484,7 @@ FlowWorker/
 │   │   ├── appsettings.json
 │   │   ├── Controllers/
 │   │   │   ├── v1/
-│   │   │   │   ├── ParticipantsController.cs
+│   │   │   │   ├── MembersController.cs
 │   │   │   │   ├── RolesController.cs
 │   │   │   │   ├── SessionsController.cs
 │   │   │   │   ├── MessagesController.cs
@@ -496,21 +496,21 @@ FlowWorker/
 │   ├── FlowWorker.Core/                # 核心业务层
 │   │   ├── FlowWorker.Core.csproj
 │   │   ├── Entities/
-│   │   │   ├── Participant.cs         # 对话者实体
+│   │   │   ├── Member.cs         # 成员实体
 │   │   │   ├── Role.cs                # 角色实体
 │   │   │   ├── Session.cs             # 会话实体
-│   │   │   ├── SessionParticipant.cs  # 会话参与者关联
+│   │   │   ├── SessionMember.cs  # 会话参与者关联
 │   │   │   ├── Message.cs             # 消息实体
 │   │   │   └── ApiConfig.cs           # API配置实体
 │   │   ├── Interfaces/
-│   │   │   ├── IParticipantService.cs
+│   │   │   ├── IMemberService.cs
 │   │   │   ├── IRoleService.cs
 │   │   │   ├── ISessionService.cs
 │   │   │   ├── IMessageService.cs
 │   │   │   ├── IOpenAIService.cs
 │   │   │   └── IRepository.cs
 │   │   ├── Services/
-│   │   │   ├── ParticipantService.cs
+│   │   │   ├── MemberService.cs
 │   │   │   ├── RoleService.cs
 │   │   │   ├── SessionService.cs
 │   │   │   ├── MessageService.cs
@@ -522,7 +522,7 @@ FlowWorker/
 │   │   │   ├── ArchitectRoleService.cs
 │   │   │   └── GeneralRoleService.cs
 │   │   ├── DTOs/
-│   │   │   ├── ParticipantDtos.cs
+│   │   │   ├── MemberDtos.cs
 │   │   │   ├── RoleDtos.cs
 │   │   │   ├── SessionDtos.cs
 │   │   │   ├── MessageDtos.cs
@@ -538,7 +538,7 @@ FlowWorker/
 │   │   │   └── Migrations/
 │   │   ├── Repositories/
 │   │   │   ├── Repository.cs
-│   │   │   ├── ParticipantRepository.cs
+│   │   │   ├── MemberRepository.cs
 │   │   │   ├── RoleRepository.cs
 │   │   │   ├── SessionRepository.cs
 │   │   │   └── MessageRepository.cs
@@ -552,8 +552,8 @@ FlowWorker/
 │       ├── FlowWorker.Shared.csproj
 │       ├── Constants.cs
 │       ├── Enums/
-│       │   ├── ParticipantType.cs
-│       │   ├── ParticipantStatus.cs
+│       │   ├── MemberType.cs
+│       │   ├── MemberStatus.cs
 │       │   ├── SessionType.cs
 │       │   └── MessageRole.cs
 │       └── Extensions/
@@ -577,7 +577,7 @@ FlowWorker/
     │   ├── routes/
     │   │   ├── +layout.svelte
     │   │   ├── +page.svelte
-    │   │   ├── participants/
+    │   │   ├── members/
     │   │   │   └── +page.svelte
     │   │   ├── roles/
     │   │   │   └── +page.svelte
@@ -592,13 +592,13 @@ FlowWorker/
     │   │   │   ├── Chat/
     │   │   │   │   ├── MessageList.svelte
     │   │   │   │   ├── ChatInput.svelte
-    │   │   │   │   └── ParticipantList.svelte
-    │   │   │   ├── Participants/
-    │   │   │   │   └── ParticipantCard.svelte
+    │   │   │   │   └── MemberList.svelte
+    │   │   │   ├── Members/
+    │   │   │   │   └── MemberCard.svelte
     │   │   │   └── Roles/
     │   │   │       └── RoleForm.svelte
     │   │   ├── stores/
-    │   │   │   ├── participantStore.ts
+    │   │   │   ├── memberStore.ts
     │   │   │   ├── roleStore.ts
     │   │   │   ├── sessionStore.ts
     │   │   │   └── messageStore.ts
@@ -614,9 +614,9 @@ FlowWorker/
 
 ### 阶段一：基础架构（1-2天）
 
-- [ ] 1.1 更新数据库实体（Participant, Role, SessionParticipant）
+- [ ] 1.1 更新数据库实体（Member, Role, SessionMember）
 - [ ] 1.2 更新数据库上下文和迁移
-- [ ] 1.3 实现对话者管理API
+- [ ] 1.3 实现成员管理API
 - [ ] 1.4 实现角色管理API
 
 ### 阶段二：群聊系统（2-3天）
@@ -645,7 +645,7 @@ FlowWorker/
 
 ### 阶段五：前端适配（2-3天）
 
-- [ ] 5.1 实现对话者管理页面
+- [ ] 5.1 实现成员管理页面
 - [ ] 5.2 实现角色管理页面
 - [ ] 5.3 更新会话页面支持群聊
 - [ ] 5.4 实现@提及功能
@@ -677,7 +677,7 @@ FlowWorker/
 
 本计划设计了一个支持群聊和角色系统的AI对话工具，主要特点：
 
-- **对话者统一抽象**：用户和AI都是对话者，统一处理
+- **成员统一抽象**：用户和AI都是成员，统一处理
 - **群聊系统**：支持多AI参与讨论，内置防循环调用机制
 - **角色系统**：不同AI可配置不同角色（Coder, UI Designer等）
 - **Coder角色**：集成Cline的三层记忆系统和工具调用能力

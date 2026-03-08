@@ -1,7 +1,7 @@
 # 第五步：群聊系统实现
 
 ## 目标
-实现群聊功能，支持多AI对话者参与同一会话，包含完整的防循环调用机制和消息路由系统。
+实现群聊功能，支持多AI成员参与同一会话，包含完整的防循环调用机制和消息路由系统。
 
 ## 具体任务
 
@@ -12,9 +12,9 @@
   - 获取群聊会话详情（包含参与者列表）
   - 群聊会话列表查询
 - [ ] 更新 SessionsController：
-  - POST /api/v1/sessions/{id}/participants - 添加参与者
-  - DELETE /api/v1/sessions/{id}/participants/{pid} - 移除参与者
-  - GET /api/v1/sessions/{id}/participants - 获取参与者列表
+  - POST /api/v1/sessions/{id}/members - 添加参与者
+  - DELETE /api/v1/sessions/{id}/members/{pid} - 移除参与者
+  - GET /api/v1/sessions/{id}/members - 获取参与者列表
 - [ ] 更新前端会话管理：
   - 创建群聊时选择多个AI参与者
   - 会话详情页显示参与者列表
@@ -23,7 +23,7 @@
 ### 5.2 消息路由服务（MessageRouterService）
 - [ ] 实现消息路由核心逻辑：
   - 解析消息中的@提及（@AI名称 或 @AI_ID）
-  - 确定目标AI对话者列表
+  - 确定目标AI成员列表
   - 管理调用令牌（每轮初始3个）
   - 跟踪调用深度（最大深度5）
 - [ ] 实现路由策略：

@@ -45,11 +45,15 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<IApiConfigRepository, ApiConfigRepository>();
+builder.Services.AddScoped<IMemberRepository, MemberRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 
 // 配置服务层
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<IApiConfigService, ApiConfigService>();
+builder.Services.AddScoped<IMemberService, MemberService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 
 // 配置数据库初始化服务

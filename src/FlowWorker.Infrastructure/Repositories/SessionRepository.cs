@@ -122,4 +122,59 @@ public class SessionRepository : ISessionRepository
             .OrderByDescending(s => s.UpdatedAt)
             .ToListAsync();
     }
+
+    public async Task<IReadOnlyList<Session>> GetGroupSessionsAsync()
+    {
+        return await _dbSet
+            .Include(s => s.ApiConfig)
+            .Include(s => s.Messages)
+            .Where(s => s.Type == Shared.Enums.SessionType.Group)
+            .OrderByDescending(s => s.UpdatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Session>> GetSingleSessionsAsync()
+    {
+        return await _dbSet
+            .Include(s => s.ApiConfig)
+            .Include(s => s.Messages)
+            .Where(s => s.Type == Shared.Enums.SessionType.Single)
+            .OrderByDescending(s => s.UpdatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<Session?> GetSessionWithMembersAsync(Guid sessionId)
+    {
+        return await _dbSet
+            .Include(s => s.ApiConfig)
+            .Include(s => s.Messages)
+            .Include(s => s.SessionMembers)
+            .ThenInclude(sp => sp.Member)
+            .FirstOrDefaultAsync(s => s.Id == sessionId);
+    }
+
+    public async Task AddMemberAsync(Guid sessionId, Guid memberId)
+    {
+        var sessionMember = new SessionMember
+        {
+            SessionId = sessionId,
+            MemberId = memberId,
+            JoinedAt = DateTime.UtcNow
+        };
+        
+        _context.Set<SessionMember>().Add(sessionMember);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task RemoveMemberAsync(Guid sessionId, Guid memberId)
+    {
+        var sessionMember = await _context.Set<SessionMember>()
+            .FirstOrDefaultAsync(sp => sp.SessionId == sessionId && sp.MemberId == memberId);
+        
+        if (sessionMember != null)
+        {
+            _context.Set<SessionMember>().Remove(sessionMember);
+            await _context.SaveChangesAsync();
+        }
+    }
 }

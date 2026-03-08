@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using FlowWorker.Shared.Entities;
 
@@ -31,6 +32,9 @@ public class DatabaseInitializer
 
     public async Task SeedDataAsync()
     {
+        // 初始化内置角色
+        await SeedBuiltInRolesAsync();
+
         // 种子数据逻辑
         if (await _context.Entity1s.AnyAsync())
         {
@@ -44,6 +48,83 @@ public class DatabaseInitializer
         };
 
         await _context.Entity1s.AddRangeAsync(entities);
+        await _context.SaveChangesAsync();
+    }
+
+    private async Task SeedBuiltInRolesAsync()
+    {
+        var builtInRoles = new List<Role>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Name = "assistant",
+                DisplayName = "通用助手",
+                Description = "通用的AI助手，可以回答各种问题",
+                SystemPrompt = "你是一个有帮助的AI助手。请用简洁、准确的方式回答用户的问题。",
+                AllowedTools = null,
+                IsBuiltIn = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Name = "code_assistant",
+                DisplayName = "代码助手",
+                Description = "专注于编程和代码相关的AI助手",
+                SystemPrompt = "你是一个专业的编程助手。你可以帮助用户编写、调试和优化代码。请提供清晰、可运行的代码示例，并解释关键概念。",
+                AllowedTools = null,
+                IsBuiltIn = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Name = "creative_writer",
+                DisplayName = "创意写手",
+                Description = "擅长创意写作和内容创作的AI助手",
+                SystemPrompt = "你是一个有创意的写作助手。你可以帮助用户进行创意写作、故事创作、文案撰写等工作。请用生动、富有想象力的语言回应。",
+                AllowedTools = null,
+                IsBuiltIn = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Name = "analyst",
+                DisplayName = "数据分析师",
+                Description = "擅长数据分析和逻辑推理的AI助手",
+                SystemPrompt = "你是一个数据分析专家。你可以帮助用户分析数据、识别模式、做出逻辑推理。请用结构化的方式呈现分析结果。",
+                AllowedTools = null,
+                IsBuiltIn = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Name = "teacher",
+                DisplayName = "教育导师",
+                Description = "擅长教育和知识传授的AI助手",
+                SystemPrompt = "你是一个耐心的教育导师。你可以帮助用户学习新知识、理解复杂概念。请用循序渐进的方式解释，并提供例子帮助理解。",
+                AllowedTools = null,
+                IsBuiltIn = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
+        };
+
+        foreach (var role in builtInRoles)
+        {
+            if (!await _context.Roles.AnyAsync(r => r.Name == role.Name))
+            {
+                await _context.Roles.AddAsync(role);
+            }
+        }
+
         await _context.SaveChangesAsync();
     }
 }

@@ -19,10 +19,19 @@
 	<nav>
 		<ul>
 			<li aria-current={page.url.pathname === '/' ? 'page' : undefined}>
-				<a href={resolve('/')}>Home</a>
+				<a href={resolve('/')}>首页</a>
+			</li>
+			<li aria-current={page.url.pathname.startsWith('/sessions') ? 'page' : undefined}>
+				<a href={resolve('/sessions')}>会话</a>
+			</li>
+			<li aria-current={page.url.pathname.startsWith('/members') ? 'page' : undefined}>
+				<a href={resolve('/members')}>成员</a>
+			</li>
+			<li aria-current={page.url.pathname.startsWith('/roles') ? 'page' : undefined}>
+				<a href={resolve('/roles')}>角色</a>
 			</li>
 			<li aria-current={page.url.pathname.startsWith('/settings') ? 'page' : undefined}>
-				<a href={resolve('/settings')}>Settings</a>
+				<a href={resolve('/settings')}>设置</a>
 			</li>
 		</ul>
 	</nav>

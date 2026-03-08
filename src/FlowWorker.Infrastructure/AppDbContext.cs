@@ -13,6 +13,9 @@ public class AppDbContext : DbContext
     public DbSet<Session> Sessions { get; set; } = default!;
     public DbSet<Message> Messages { get; set; } = default!;
     public DbSet<ApiConfig> ApiConfigs { get; set; } = default!;
+    public DbSet<Member> Members { get; set; } = default!;
+    public DbSet<Role> Roles { get; set; } = default!;
+    public DbSet<SessionMember> SessionMembers { get; set; } = default!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,6 +29,46 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Id).ValueGeneratedOnAdd();
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
+        });
+
+        // 配置 Role
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.ToTable("Roles");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.DisplayName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.SystemPrompt).IsRequired();
+            entity.Property(e => e.AllowedTools).HasColumnType("json");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
+            
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
+        // 配置 Member
+        modelBuilder.Entity<Member>(entity =>
+        {
+            entity.ToTable("Members");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Avatar).HasMaxLength(500);
+            entity.Property(e => e.Model).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
+            
+            entity.HasOne(e => e.Role)
+                .WithMany(r => r.Members)
+                .HasForeignKey(e => e.RoleId)
+                .OnDelete(DeleteBehavior.SetNull);
+            
+            entity.HasOne(e => e.ApiConfig)
+                .WithMany()
+                .HasForeignKey(e => e.ApiConfigId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // 配置 Session
@@ -47,6 +90,27 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // 配置 SessionMember
+        modelBuilder.Entity<SessionMember>(entity =>
+        {
+            entity.ToTable("SessionMembers");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.JoinedAt).HasDefaultValueSql("datetime('now')");
+            
+            entity.HasOne(e => e.Session)
+                .WithMany(s => s.SessionMembers)
+                .HasForeignKey(e => e.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.Member)
+                .WithMany(p => p.SessionMembers)
+                .HasForeignKey(e => e.MemberId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasIndex(e => new { e.SessionId, e.MemberId }).IsUnique();
+        });
+
         // 配置 Message
         modelBuilder.Entity<Message>(entity =>
         {
@@ -61,6 +125,11 @@ public class AppDbContext : DbContext
             entity.HasOne(e => e.Session)
                 .WithMany(s => s.Messages)
                 .HasForeignKey(e => e.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.Member)
+                .WithMany(p => p.Messages)
+                .HasForeignKey(e => e.MemberId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

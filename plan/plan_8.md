@@ -15,7 +15,7 @@
 - [ ] 编写 Service 层单元测试：
   - SessionService 测试（CRUD、业务逻辑）
   - MessageService 测试（消息发送、流式响应）
-  - ParticipantService 测试（对话者管理）
+  - MemberService 测试（成员管理）
   - RoleService 测试（角色管理）
   - 目标覆盖率 > 80%
 - [ ] 编写 Repository 层单元测试：
@@ -249,7 +249,7 @@ tests/
 │   ├── Services/
 │   │   ├── SessionServiceTests.cs
 │   │   ├── MessageServiceTests.cs
-│   │   └── ParticipantServiceTests.cs
+│   │   └── MemberServiceTests.cs
 │   └── Tools/
 │       └── TokenCounterTests.cs
 ├── FlowWorker.Api.Tests/

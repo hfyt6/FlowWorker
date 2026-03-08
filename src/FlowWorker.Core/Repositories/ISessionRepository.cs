@@ -100,4 +100,29 @@ public interface ISessionRepository
     /// <param name="title">标题关键词</param>
     /// <returns>会话列表</returns>
     Task<IReadOnlyList<Session>> SearchAsync(string title);
+
+    /// <summary>
+    /// 获取群聊会话列表
+    /// </summary>
+    Task<IReadOnlyList<Session>> GetGroupSessionsAsync();
+
+    /// <summary>
+    /// 获取单聊会话列表
+    /// </summary>
+    Task<IReadOnlyList<Session>> GetSingleSessionsAsync();
+
+    /// <summary>
+    /// 获取会话及其成员
+    /// </summary>
+    Task<Session?> GetSessionWithMembersAsync(Guid sessionId);
+
+    /// <summary>
+    /// 添加成员到会话
+    /// </summary>
+    Task AddMemberAsync(Guid sessionId, Guid memberId);
+
+    /// <summary>
+    /// 从会话中移除成员
+    /// </summary>
+    Task RemoveMemberAsync(Guid sessionId, Guid memberId);
 }

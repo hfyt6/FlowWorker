@@ -96,8 +96,23 @@ public interface IMessageRepository
     Task<IReadOnlyList<Message>> GetLastMessagesAsync(Guid sessionId, int count);
 
     /// <summary>
-    /// 删除会话的所有消息
+    /// 根据会话 ID 删除消息
     /// </summary>
     /// <param name="sessionId">会话 ID</param>
     Task DeleteBySessionIdAsync(Guid sessionId);
+
+    /// <summary>
+    /// 根据成员ID获取消息列表
+    /// </summary>
+    Task<IReadOnlyList<Message>> GetByMemberIdAsync(Guid memberId);
+
+    /// <summary>
+    /// 根据会话ID和成员ID获取消息列表
+    /// </summary>
+    Task<IReadOnlyList<Message>> GetBySessionAndMemberAsync(Guid sessionId, Guid memberId);
+
+    /// <summary>
+    /// 获取指定调用深度的消息
+    /// </summary>
+    Task<IReadOnlyList<Message>> GetByCallDepthAsync(Guid sessionId, int callDepth);
 }
