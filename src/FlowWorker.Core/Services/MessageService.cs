@@ -459,11 +459,18 @@ public class MessageService : IMessageService
             throw new InvalidOperationException("此方法仅支持群聊会话");
         }
 
-        // 验证 API 配置
-        if (session.ApiConfig == null)
+        // 获取第一个AI成员的API配置（群聊使用第一个AI成员的配置）
+        var firstAiMember = session.SessionMembers?
+            .Where(sm => sm.Member?.Type == MemberType.AI && sm.IsActive)
+            .Select(sm => sm.Member)
+            .FirstOrDefault();
+
+        if (firstAiMember?.ApiConfig == null)
         {
-            throw new InvalidOperationException($"会话 {sessionId} 未配置 API 信息");
+            throw new InvalidOperationException($"群聊会话 {sessionId} 中没有配置API信息的AI成员");
         }
+
+        var apiConfig = firstAiMember.ApiConfig;
 
         // 创建对话上下文
         var context = await _groupChatService.CreateContextAsync(sessionId);
@@ -522,7 +529,13 @@ public class MessageService : IMessageService
 
             // 获取消息历史
             var messages = await _messageRepository.GetBySessionIdAsync(sessionId);
-
+            if(messages.Count > 0 && messages.Last().Role == MessageRole.Assistant)
+            {
+                var tempMessages = messages.ToList();
+                tempMessages.RemoveAt(tempMessages.Count-1);
+                messages = tempMessages;
+            }
+            
             // 调用 OpenAI API 流式接口
             var fullContent = new StringBuilder();
             var assistantMessageId = Guid.NewGuid();
@@ -537,10 +550,17 @@ public class MessageService : IMessageService
 
             try
             {
+                // 使用AI成员自己的API配置，如果没有则使用第一个AI成员的API配置
+                var memberApiConfig = aiMember.ApiConfig ?? apiConfig;
+                var model = !string.IsNullOrWhiteSpace(aiMember.Model) ? aiMember.Model : memberApiConfig.Model;
+                
+                _logger.LogInformation("AI成员 {MemberId} 使用模型: {Model}, API BaseUrl: {BaseUrl}", 
+                    aiMemberId, model, memberApiConfig.BaseUrl);
+
                 await _openAIService.SendMessageStreamAsync(
-                    session.ApiConfig.ApiKey,
-                    session.ApiConfig.BaseUrl,
-                    session.Model,
+                    memberApiConfig.ApiKey,
+                    memberApiConfig.BaseUrl,
+                    model,
                     messages,
                     async chunk =>
                     {
@@ -551,8 +571,8 @@ public class MessageService : IMessageService
                         await onChunk(chunk, aiMemberId);
                     },
                     systemPrompt,
-                    session.Temperature,
-                    session.MaxTokens);
+                    aiMember.Temperature,
+                    aiMember.MaxTokens ?? session.MaxTokens);
 
                 var responseContent = fullContent.ToString();
 
@@ -564,7 +584,7 @@ public class MessageService : IMessageService
                     MemberId = aiMemberId,
                     Role = MessageRole.Assistant,
                     Content = responseContent,
-                    Model = session.Model,
+                    Model = model,
                     CreatedAt = DateTime.UtcNow
                 };
                 await _messageRepository.AddAsync(assistantMessage);
@@ -612,5 +632,70 @@ public class MessageService : IMessageService
         {
             Type = "group_complete"
         }, Guid.Empty);
+    }
+
+    /// <summary>
+    /// 发送群聊消息（非流式，支持多AI响应）- 内部调用流式方法
+    /// </summary>
+    public async Task<List<SendMessageResponse>> SendMessageGroupAsync(
+        Guid sessionId,
+        string content,
+        Guid? senderMemberId)
+    {
+        var responses = new List<SendMessageResponse>();
+        var responseContents = new Dictionary<Guid, StringBuilder>();
+        var responseModels = new Dictionary<Guid, string>();
+
+        await SendMessageGroupStreamAsync(
+            sessionId,
+            content,
+            senderMemberId,
+            async (chunk, memberId) =>
+            {
+                if (chunk.Type == "content" && !string.IsNullOrEmpty(chunk.Content))
+                {
+                    if (!responseContents.ContainsKey(memberId))
+                    {
+                        responseContents[memberId] = new StringBuilder();
+                    }
+                    responseContents[memberId].Append(chunk.Content);
+                }
+                else if (chunk.Type == "member_start")
+                {
+                    // 记录成员开始响应
+                    if (!string.IsNullOrEmpty(chunk.Model))
+                    {
+                        responseModels[memberId] = chunk.Model;
+                    }
+                }
+                else if (chunk.Type == "member_complete")
+                {
+                    // 成员响应完成，构建响应对象
+                    var responseContent = responseContents.ContainsKey(memberId) 
+                        ? responseContents[memberId].ToString() 
+                        : chunk.Content ?? string.Empty;
+                    
+                    responses.Add(new SendMessageResponse
+                    {
+                        Content = responseContent,
+                        Model = responseModels.ContainsKey(memberId) ? responseModels[memberId] : chunk.Model ?? string.Empty,
+                        IsComplete = true
+                    });
+                }
+                else if (chunk.Type == "error" && memberId != Guid.Empty)
+                {
+                    // 处理错误响应
+                    responses.Add(new SendMessageResponse
+                    {
+                        Content = chunk.Content ?? "未知错误",
+                        Model = responseModels.ContainsKey(memberId) ? responseModels[memberId] : string.Empty,
+                        IsComplete = false
+                    });
+                }
+
+                await Task.CompletedTask;
+            });
+
+        return responses;
     }
 }

@@ -83,4 +83,16 @@ public interface IMessageService
         string content,
         Guid? senderMemberId,
         Func<StreamContentChunk, Guid, Task> onChunk);
+
+    /// <summary>
+    /// 发送群聊消息（非流式，支持多AI响应）
+    /// </summary>
+    /// <param name="sessionId">会话 ID</param>
+    /// <param name="content">消息内容</param>
+    /// <param name="senderMemberId">发送者成员ID</param>
+    /// <returns>AI响应列表</returns>
+    Task<List<SendMessageResponse>> SendMessageGroupAsync(
+        Guid sessionId,
+        string content,
+        Guid? senderMemberId);
 }

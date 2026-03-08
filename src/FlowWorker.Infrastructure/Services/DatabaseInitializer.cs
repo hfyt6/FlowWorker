@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using FlowWorker.Shared.Entities;
+using FlowWorker.Shared.Enums;
 
 namespace FlowWorker.Infrastructure.Services;
 
@@ -35,6 +36,9 @@ public class DatabaseInitializer
         // 初始化内置角色
         await SeedBuiltInRolesAsync();
 
+        // 初始化默认用户成员
+        await SeedDefaultUserMemberAsync();
+
         // 种子数据逻辑
         if (await _context.Entity1s.AnyAsync())
         {
@@ -49,6 +53,26 @@ public class DatabaseInitializer
 
         await _context.Entity1s.AddRangeAsync(entities);
         await _context.SaveChangesAsync();
+    }
+
+    private async Task SeedDefaultUserMemberAsync()
+    {
+        // 检查是否已存在名为"默认用户成员"的用户成员
+        if (!await _context.Members.AnyAsync(m => m.Name == "默认用户成员" && m.Type == MemberType.User))
+        {
+            var defaultUserMember = new Member
+            {
+                Id = Guid.NewGuid(),
+                Name = "默认用户成员",
+                Type = MemberType.User,
+                Status = MemberStatus.Online,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            
+            await _context.Members.AddAsync(defaultUserMember);
+            await _context.SaveChangesAsync();
+        }
     }
 
     private async Task SeedBuiltInRolesAsync()

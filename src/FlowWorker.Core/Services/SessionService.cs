@@ -76,7 +76,13 @@ public class SessionService : ISessionService
         }
 
         var messages = await _messageRepository.GetBySessionIdAsync(id);
-        var apiConfig = await _apiConfigRepository.GetByIdAsync(session.ApiConfigId);
+        
+        // 群聊时 ApiConfigId 可能为 null
+        ApiConfig? apiConfig = null;
+        if (session.ApiConfigId.HasValue)
+        {
+            apiConfig = await _apiConfigRepository.GetByIdAsync(session.ApiConfigId.Value);
+        }
 
         // 构建参与者列表
         var members = new List<SessionMemberDto>();
@@ -171,21 +177,21 @@ public class SessionService : ISessionService
             throw new InvalidOperationException($"创建者 {request.CreatedBy} 不存在");
         }
 
-        // 获取默认 API 配置
-        var defaultConfig = await _apiConfigRepository.GetDefaultConfigAsync();
-        if (defaultConfig == null)
+        // 验证至少有一个 AI 成员
+        if (!request.AiMemberIds.Any())
         {
-            throw new InvalidOperationException("未找到默认 API 配置，请先创建 API 配置");
+            throw new InvalidOperationException("群聊会话至少需要选择一个 AI 成员");
         }
 
+        // 群聊会话不需要统一的 API 配置，每个 AI 成员使用自己的 API 配置
         var session = new Session
         {
             Id = Guid.NewGuid(),
             Title = request.Title,
             Type = SessionType.Group,
             CreatedBy = request.CreatedBy,
-            ApiConfigId = defaultConfig.Id,
-            Model = defaultConfig.Model,
+            ApiConfigId = null,  // 群聊时 API 配置为 null
+            Model = string.Empty, // 群聊时模型为空，每个 AI 成员有自己的模型
             SystemPrompt = request.SystemPrompt ?? "你是一个群聊助手，与其他AI助手协作帮助用户解决问题。",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow

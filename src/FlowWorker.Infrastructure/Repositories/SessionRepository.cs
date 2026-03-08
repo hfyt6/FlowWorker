@@ -150,6 +150,7 @@ public class SessionRepository : ISessionRepository
             .Include(s => s.Messages)
             .Include(s => s.SessionMembers)
             .ThenInclude(sp => sp.Member)
+            .ThenInclude(m => m.ApiConfig)
             .FirstOrDefaultAsync(s => s.Id == sessionId);
     }
 

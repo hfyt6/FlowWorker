@@ -29,12 +29,12 @@ public class Session
     public Guid CreatedBy { get; set; }
 
     /// <summary>
-    /// 关联的 API 配置 ID
+    /// 关联的 API 配置 ID（单聊时必填，群聊时为 null，因为每个 AI 成员有自己的 API 配置）
     /// </summary>
-    public Guid ApiConfigId { get; set; }
+    public Guid? ApiConfigId { get; set; }
 
     /// <summary>
-    /// 使用的模型
+    /// 使用的模型（单聊时必填，群聊时为 null）
     /// </summary>
     public string Model { get; set; } = string.Empty;
 

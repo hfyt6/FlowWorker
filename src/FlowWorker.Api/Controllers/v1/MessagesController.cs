@@ -153,7 +153,7 @@ public class MessagesController : ControllerBase
     }
 
     /// <summary>
-    /// 发送群聊消息（支持多AI响应）
+    /// 发送群聊消息（支持多AI响应）- 流式
     /// </summary>
     /// <param name="sessionId">会话 ID</param>
     /// <param name="request">发送消息请求</param>
@@ -194,5 +194,21 @@ public class MessagesController : ControllerBase
                 await Response.WriteAsync("\n", cancellationToken); // NDJSON 格式：每行一个 JSON 对象
                 await Response.Body.FlushAsync(cancellationToken); // 立即刷新到客户端
             });
+    }
+
+    /// <summary>
+    /// 发送群聊消息（支持多AI响应）- 非流式
+    /// </summary>
+    /// <param name="sessionId">会话 ID</param>
+    /// <param name="request">发送消息请求</param>
+    /// <returns>多AI响应列表</returns>
+    [HttpPost("group")]
+    public async Task<ActionResult<List<SendMessageResponse>>> SendMessageGroup(Guid sessionId, [FromBody] SendMessageRequest request)
+    {
+        var responses = await _messageService.SendMessageGroupAsync(
+            sessionId,
+            request.Content,
+            request.SenderMemberId);
+        return Ok(responses);
     }
 }

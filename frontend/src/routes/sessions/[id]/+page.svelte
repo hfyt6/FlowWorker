@@ -84,7 +84,7 @@ async function loadSessionDetail(id: string) {
 
 // 发送群聊消息
 async function handleSendGroupMessage() {
-    if (!inputMessage.trim() || isSending || !currentSession?.participants?.length) {
+    if (!inputMessage.trim() || isSending || !currentSession?.members?.length) {
         return;
     }
 
@@ -113,21 +113,23 @@ async function handleSendGroupMessage() {
 
     try {
         // 获取第一个参与者作为发送者（实际应用中可能是当前用户）
-        const humanParticipant = currentSession.participants.find(p => p.memberType === 'Human') || currentSession.participants[0];
+        // 注意：type 是数字，0 = User, 1 = AI
+        const humanParticipant = currentSession.members.find(m => m.type === 0 || m.type === 'User') || currentSession.members[0];
         
         // 调用群聊消息 API
         const responses = await messageApi.sendGroupMessage(sessionId, {
             content: userContent,
-            senderId: humanParticipant.memberId
+            senderMemberId: humanParticipant.id
         });
 
         // 将响应消息添加到列表
         if (responses && responses.length > 0) {
-            for (const response of responses) {
+            for (let i = 0; i < responses.length; i++) {
+                const response = responses[i];
                 messages.update(currentMessages => [
                     ...currentMessages,
                     {
-                        id: response.id || 'assistant-' + Date.now(),
+                        id: response.id || 'assistant-' + Date.now() + '-' + i,
                         role: MessageRole.Assistant,
                         content: response.content,
                         tokens: response.tokens,
@@ -402,8 +404,9 @@ function handleKeyDown(e: KeyboardEvent) {
                 <span class="header-subtitle">{sessionMessages.length} 条消息</span>
             </div>
         </div>
-        <div class="header-actions">
-            <!-- API 配置切换器 -->
+    <div class="header-actions">
+            <!-- 单聊显示 API 配置切换器 -->
+            {#if !isGroupSession}
             <div class="config-selector" bind:this={configDropdownElement}>
                 <button
                     class="btn-config"
@@ -463,6 +466,7 @@ function handleKeyDown(e: KeyboardEvent) {
                     </div>
                 {/if}
             </div>
+            {/if}
 
             <button class="btn-icon" on:click={handleRegenerate} title="重新生成">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>

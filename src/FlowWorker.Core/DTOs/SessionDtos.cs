@@ -118,9 +118,9 @@ public class UpdateSessionRequest
     public string Title { get; set; } = string.Empty;
 
     /// <summary>
-    /// API 配置 ID
+    /// API 配置 ID（单聊时必填，群聊时为 null）
     /// </summary>
-    public Guid ApiConfigId { get; set; }
+    public Guid? ApiConfigId { get; set; }
 
     /// <summary>
     /// 使用的模型
@@ -170,7 +170,7 @@ public class SessionDetailDto
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public SessionType Type { get; set; }
-    public Guid ApiConfigId { get; set; }
+    public Guid? ApiConfigId { get; set; }
     public string ApiConfigName { get; set; } = string.Empty;
     public string Model { get; set; } = string.Empty;
     public string SystemPrompt { get; set; } = string.Empty;

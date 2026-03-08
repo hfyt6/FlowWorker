@@ -88,6 +88,7 @@ public class MessageRepository : IMessageRepository
     {
         return await _dbSet
             .Where(m => m.SessionId == sessionId)
+            .Include(m => m.Member)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync();
     }

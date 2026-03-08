@@ -311,44 +311,40 @@ public class GroupChatService : IGroupChatService
         if (mentionedMembers.Count > 0)
         {
             result.AddRange(mentionedMembers);
+            return result.Distinct().ToList();
         }
 
-        // 如果是用户发送的消息，所有AI都应该考虑响应
-        var sender = context.Members.FirstOrDefault(m => m.Id == senderId);
-        if (sender?.Type == MemberType.User)
+        // 获取发送者信息
+        var sender = senderId.HasValue 
+            ? context.Members.FirstOrDefault(m => m.Id == senderId.Value)
+            : null;
+
+        // 如果发送者为null或用户类型，让所有AI响应（群聊中用户消息应该得到所有AI的响应）
+        if (sender == null || sender.Type == MemberType.User)
         {
-            // 用户消息，所有AI都可以响应
-            // 但如果没有@提及，我们选择最相关的AI
-            if (mentionedMembers.Count == 0)
-            {
-                // 简单策略：让所有AI都有机会响应
-                // 后续可以添加相关性分析
-                result.AddRange(aiMembers.Select(m => m.Id));
-            }
+            // 用户消息或无法确定发送者时，所有AI都可以响应
+            result.AddRange(aiMembers.Select(m => m.Id));
         }
-        else if (sender?.Type == MemberType.AI)
+        else if (sender.Type == MemberType.AI)
         {
             // AI发送的消息，其他AI可以选择性响应
-            if (mentionedMembers.Count == 0)
+            // 检查消息是否表示结束
+            if (ContainsTerminationSignal(messageContent))
             {
-                // 检查消息是否表示结束
-                if (ContainsTerminationSignal(messageContent))
-                {
-                    // 不需要其他AI响应
-                    return result;
-                }
+                // 不需要其他AI响应
+                return result;
+            }
 
-                // 让其他AI有机会补充
-                var otherAiMembers = aiMembers
-                    .Where(m => m.Id != senderId)
-                    .Select(m => m.Id)
-                    .ToList();
+            // 让其他AI有机会补充
+            var otherAiMembers = aiMembers
+                .Where(m => m.Id != senderId)
+                .Select(m => m.Id)
+                .ToList();
 
-                // 限制响应数量，避免无限循环
-                if (context.CurrentDepth < _options.MaxCallDepth - 1)
-                {
-                    result.AddRange(otherAiMembers.Take(1)); // 只让一个AI响应
-                }
+            // 限制响应数量，避免无限循环
+            if (context.CurrentDepth < _options.MaxCallDepth - 1 && otherAiMembers.Count > 0)
+            {
+                result.AddRange(otherAiMembers.Take(1)); // 只让一个AI响应
             }
         }
 

@@ -36,6 +36,10 @@ public class OpenAIService : IOpenAIService
         // 构建完整的 API URL
         var apiUrl = BuildApiUrl(baseUrl, "/chat/completions");
 
+        // 序列化请求内容用于日志记录
+        var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower });
+        _logger.LogDebug("OpenAI请求: {Request}", requestJson);
+
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, apiUrl)
         {
             Content = JsonContent.Create(request, options: new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower })
@@ -44,6 +48,13 @@ public class OpenAIService : IOpenAIService
         httpRequest.Headers.Add("Authorization", $"Bearer {apiKey}");
 
         using var response = await _httpClient.SendAsync(httpRequest);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError("OpenAI API错误: StatusCode={StatusCode}, Response={Response}", response.StatusCode, errorContent);
+        }
+        
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<OpenAiResponse>();
@@ -72,8 +83,9 @@ public class OpenAIService : IOpenAIService
         };
 
         httpRequest.Headers.Add("Authorization", $"Bearer {apiKey}");
-
+        _logger.LogInformation($"### 开始 {model} " + apiUrl);
         using var response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+        _logger.LogInformation($"### 结束 {model} " + apiUrl);
         response.EnsureSuccessStatusCode();
 
         var fullContent = new StringBuilder();
