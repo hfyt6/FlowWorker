@@ -70,4 +70,17 @@ public interface IMessageService
     /// <param name="onChunk">流式数据回调（支持异步）</param>
     /// <returns>AI 响应</returns>
     Task<SendMessageResponse> RegenerateResponseStreamAsync(Guid sessionId, Func<StreamContentChunk, Task> onChunk);
+
+    /// <summary>
+    /// 发送群聊消息（支持多AI响应）
+    /// </summary>
+    /// <param name="sessionId">会话 ID</param>
+    /// <param name="content">消息内容</param>
+    /// <param name="senderMemberId">发送者成员ID</param>
+    /// <param name="onChunk">流式数据回调（包含成员ID）</param>
+    Task SendMessageGroupStreamAsync(
+        Guid sessionId,
+        string content,
+        Guid? senderMemberId,
+        Func<StreamContentChunk, Guid, Task> onChunk);
 }

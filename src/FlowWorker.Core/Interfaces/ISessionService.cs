@@ -31,6 +31,13 @@ public interface ISessionService
     Task<Guid> CreateSessionAsync(CreateSessionRequest request);
 
     /// <summary>
+    /// 创建群聊会话
+    /// </summary>
+    /// <param name="request">创建请求</param>
+    /// <returns>会话 ID</returns>
+    Task<Guid> CreateGroupSessionAsync(CreateGroupSessionRequest request);
+
+    /// <summary>
     /// 更新会话
     /// </summary>
     /// <param name="id">会话 ID</param>
@@ -49,4 +56,25 @@ public interface ISessionService
     /// <param name="title">标题关键词</param>
     /// <returns>会话列表</returns>
     Task<IReadOnlyList<SessionListItemDto>> SearchSessionsAsync(string title);
+
+    /// <summary>
+    /// 获取会话参与者列表
+    /// </summary>
+    /// <param name="sessionId">会话 ID</param>
+    /// <returns>参与者列表</returns>
+    Task<IReadOnlyList<SessionMemberDto>> GetSessionMembersAsync(Guid sessionId);
+
+    /// <summary>
+    /// 添加参与者到会话
+    /// </summary>
+    /// <param name="sessionId">会话 ID</param>
+    /// <param name="memberId">成员 ID</param>
+    Task AddMemberToSessionAsync(Guid sessionId, Guid memberId);
+
+    /// <summary>
+    /// 从会话中移除参与者
+    /// </summary>
+    /// <param name="sessionId">会话 ID</param>
+    /// <param name="memberId">成员 ID</param>
+    Task RemoveMemberFromSessionAsync(Guid sessionId, Guid memberId);
 }

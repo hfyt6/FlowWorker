@@ -6,7 +6,7 @@
 	interface Member {
 		id: string;
 		name: string;
-		type: 'User' | 'AI';
+		type: 'User' | 'AI' | 0 | 1;
 		avatar?: string;
 		status: 'Active' | 'Inactive';
 		createdAt: string;
@@ -15,6 +15,16 @@
 		roleDisplayName?: string;
 		apiConfigName?: string;
 		model?: string;
+	}
+
+	// 辅助函数：判断成员是否为AI类型
+	function isAIMember(member: Member): boolean {
+		return member.type === 'AI' || member.type === 1;
+	}
+
+	// 辅助函数：判断成员是否为用户类型
+	function isUserMember(member: Member): boolean {
+		return member.type === 'User' || member.type === 0;
 	}
 
 	interface Role {
@@ -29,6 +39,7 @@
 		id: string;
 		name: string;
 		provider: string;
+		model: string;
 	}
 
 	// 状态
@@ -52,7 +63,8 @@
 		type: 'AI' as 'User' | 'AI',
 		roleId: '',
 		apiConfigId: '',
-		model: ''
+		model: '',
+		temperature: 0.7
 	};
 
 	const API_BASE = 'http://localhost:5121/api/v1';
@@ -109,7 +121,8 @@
 					avatar: formData.avatar || undefined,
 					roleId: formData.roleId,
 					apiConfigId: formData.apiConfigId,
-					model: formData.model || undefined
+					model: formData.model || undefined,
+					temperature: formData.temperature
 				}
 				: {
 					name: formData.name,
@@ -197,10 +210,11 @@
 		formData = {
 			name: member.name,
 			avatar: member.avatar || '',
-			type: member.type,
+			type: isAIMember(member) ? 'AI' : 'User',
 			roleId: member.roleId || '',
 			apiConfigId: '',
-			model: member.model || ''
+			model: member.model || '',
+			temperature: 0.7
 		};
 		showEditModal = true;
 	}
@@ -217,7 +231,8 @@
 			type: 'AI',
 			roleId: '',
 			apiConfigId: '',
-			model: ''
+			model: '',
+			temperature: 0.7
 		};
 	}
 
@@ -229,10 +244,14 @@
 		resetForm();
 	}
 
+	// 计算各类型成员数量
+	$: aiMemberCount = members.filter(isAIMember).length;
+	$: userMemberCount = members.filter(isUserMember).length;
+
 	$: filteredMembers = members.filter(m => {
 		if (activeTab === 'all') return true;
-		if (activeTab === 'ai') return m.type === 'AI';
-		if (activeTab === 'user') return m.type === 'User';
+		if (activeTab === 'ai') return isAIMember(m);
+		if (activeTab === 'user') return isUserMember(m);
 		return true;
 	});
 
@@ -246,6 +265,18 @@
 
 	function getStatusColor(status: string): string {
 		return status === 'Active' ? 'var(--color-success)' : 'var(--color-text-muted)';
+	}
+
+	// 处理API配置变更，自动填充默认模型
+	function handleApiConfigChange(event: Event) {
+		const select = event.target as HTMLSelectElement;
+		const selectedId = select.value;
+		if (selectedId) {
+			const selectedConfig = apiConfigs.find(c => c.id === selectedId);
+			if (selectedConfig && !formData.model) {
+				formData.model = selectedConfig.model;
+			}
+		}
 	}
 </script>
 
@@ -279,14 +310,14 @@
 			class:active={activeTab === 'ai'}
 			on:click={() => activeTab = 'ai'}
 		>
-			AI虚拟成员 ({members.filter(m => m.type === 'AI').length})
+			AI虚拟成员 ({aiMemberCount})
 		</button>
 		<button 
 			class="tab" 
 			class:active={activeTab === 'user'}
 			on:click={() => activeTab = 'user'}
 		>
-			用户 ({members.filter(m => m.type === 'User').length})
+			用户 ({userMemberCount})
 		</button>
 	</div>
 
@@ -307,12 +338,12 @@
 				<div class="member-card">
 					<div class="card-header">
 						<div class="avatar">
-							{member.avatar || getTypeIcon(member.type)}
+							{member.avatar || getTypeIcon(isAIMember(member) ? 'AI' : 'User')}
 						</div>
 						<div class="info">
 							<h3>{member.name}</h3>
-							<span class="type-badge" class:ai={member.type === 'AI'}>
-								{member.type === 'AI' ? 'AI虚拟成员' : '用户'}
+							<span class="type-badge" class:ai={isAIMember(member)}>
+								{isAIMember(member) ? 'AI虚拟成员' : '用户'}
 							</span>
 						</div>
 						<div class="status" style="color: {getStatusColor(member.status)}">
@@ -320,7 +351,7 @@
 						</div>
 					</div>
 					
-					{#if member.type === 'AI'}
+					{#if isAIMember(member)}
 						<div class="card-details">
 							{#if member.roleDisplayName}
 								<div class="detail">
@@ -349,11 +380,9 @@
 							<button class="btn-icon" on:click={() => openEditModal(member)} title="编辑">
 								✏️
 							</button>
-							{#if member.type === 'AI'}
-								<button class="btn-icon" on:click={() => openDeleteModal(member)} title="删除">
-									🗑️
-								</button>
-							{/if}
+							<button class="btn-icon" on:click={() => openDeleteModal(member)} title="删除">
+								🗑️
+							</button>
 						</div>
 					</div>
 				</div>
@@ -394,17 +423,33 @@
 					
 					<div class="form-group">
 						<label>API配置 *</label>
-						<select bind:value={formData.apiConfigId}>
+						<select bind:value={formData.apiConfigId} on:change={handleApiConfigChange}>
 							<option value="">选择API配置</option>
 							{#each apiConfigs as config}
-								<option value={config.id}>{config.name}</option>
+								<option value={config.id}>{config.name} ({config.model})</option>
 							{/each}
 						</select>
 					</div>
 					
 					<div class="form-group">
-						<label>模型 (可选)</label>
+						<label>模型 (可选，留空使用API配置默认模型)</label>
 						<input type="text" bind:value={formData.model} placeholder="例如: gpt-4" />
+					</div>
+					
+					<div class="form-group">
+						<label>温度 (Temperature): {formData.temperature.toFixed(2)}</label>
+						<input 
+							type="range" 
+							bind:value={formData.temperature} 
+							min="0" 
+							max="2" 
+							step="0.1" 
+							class="temperature-slider"
+						/>
+						<div class="temperature-hint">
+							<span>精确 (0)</span>
+							<span>创造性 (2)</span>
+						</div>
 					</div>
 				{/if}
 			</div>
@@ -441,7 +486,7 @@
 					<input type="text" bind:value={formData.avatar} placeholder="输入emoji或URL" />
 				</div>
 				
-				{#if selectedMember.type === 'AI'}
+				{#if isAIMember(selectedMember)}
 					<div class="form-group">
 						<label>角色</label>
 						<select bind:value={formData.roleId}>
@@ -828,6 +873,48 @@
 
 	.form-group input::placeholder {
 		color: var(--color-text-muted);
+	}
+
+	.temperature-slider {
+		width: 100%;
+		height: 6px;
+		border-radius: 3px;
+		background: rgba(96, 165, 250, 0.2);
+		outline: none;
+		-webkit-appearance: none;
+		appearance: none;
+	}
+
+	.temperature-slider::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: var(--color-theme-1);
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.temperature-slider::-webkit-slider-thumb:hover {
+		transform: scale(1.1);
+	}
+
+	.temperature-slider::-moz-range-thumb {
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: var(--color-theme-1);
+		cursor: pointer;
+		border: none;
+	}
+
+	.temperature-hint {
+		display: flex;
+		justify-content: space-between;
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+		margin-top: 0.25rem;
 	}
 
 	@media (max-width: 640px) {

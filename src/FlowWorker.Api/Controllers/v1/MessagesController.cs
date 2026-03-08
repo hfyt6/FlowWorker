@@ -151,4 +151,48 @@ public class MessagesController : ControllerBase
             await Response.Body.FlushAsync(cancellationToken); // 立即刷新到客户端
         });
     }
+
+    /// <summary>
+    /// 发送群聊消息（支持多AI响应）
+    /// </summary>
+    /// <param name="sessionId">会话 ID</param>
+    /// <param name="request">发送消息请求</param>
+    /// <returns>流式多AI响应</returns>
+    [HttpPost("send-group-stream")]
+    public async Task SendMessageGroupStream(Guid sessionId, [FromBody] SendMessageRequest request, CancellationToken cancellationToken)
+    {
+        // 设置响应头，确保流式传输
+        Response.ContentType = "application/x-ndjson";
+        Response.Headers["Cache-Control"] = "no-cache";
+        Response.Headers["Connection"] = "keep-alive";
+        Response.Headers["X-Accel-Buffering"] = "no"; // 禁用 Nginx 缓冲
+        
+        await _messageService.SendMessageGroupStreamAsync(
+            sessionId,
+            request.Content,
+            request.SenderMemberId,
+            async (chunk, memberId) =>
+            {
+                // 添加成员ID到响应中
+                var responseChunk = new
+                {
+                    chunk.Type,
+                    chunk.Content,
+                    chunk.MessageId,
+                    MemberId = memberId != Guid.Empty ? memberId.ToString() : chunk.MemberId,
+                    chunk.MemberName,
+                    chunk.Model,
+                    chunk.FinishReason
+                };
+                
+                // 将每个 chunk 序列化为 JSON 并写入响应流
+                var json = JsonSerializer.Serialize(responseChunk, new JsonSerializerOptions 
+                { 
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+                });
+                await Response.WriteAsync(json, cancellationToken);
+                await Response.WriteAsync("\n", cancellationToken); // NDJSON 格式：每行一个 JSON 对象
+                await Response.Body.FlushAsync(cancellationToken); // 立即刷新到客户端
+            });
+    }
 }

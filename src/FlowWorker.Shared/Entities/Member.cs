@@ -49,6 +49,16 @@ public class Member
     public string? Model { get; set; }
 
     /// <summary>
+    /// 生成温度（仅AI类型）
+    /// </summary>
+    public decimal Temperature { get; set; } = 0.7m;
+
+    /// <summary>
+    /// 最大 Token 数（仅AI类型）
+    /// </summary>
+    public int? MaxTokens { get; set; }
+
+    /// <summary>
     /// 创建时间
     /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

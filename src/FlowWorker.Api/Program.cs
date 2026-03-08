@@ -1,3 +1,4 @@
+using FlowWorker.Core.Configuration;
 using FlowWorker.Core.Interfaces;
 using FlowWorker.Core.Repositories;
 using FlowWorker.Core.Services;
@@ -48,6 +49,11 @@ builder.Services.AddScoped<IApiConfigRepository, ApiConfigRepository>();
 builder.Services.AddScoped<IMemberRepository, MemberRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 
+// 配置群聊选项
+builder.Services.Configure<GroupChatOptions>(builder.Configuration.GetSection("GroupChat"));
+builder.Services.AddScoped<GroupChatOptions>(sp => 
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<GroupChatOptions>>().Value);
+
 // 配置服务层
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
@@ -55,6 +61,7 @@ builder.Services.AddScoped<IApiConfigService, ApiConfigService>();
 builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>();
+builder.Services.AddScoped<IGroupChatService, GroupChatService>();
 
 // 配置数据库初始化服务
 builder.Services.AddScoped<DatabaseInitializer>();

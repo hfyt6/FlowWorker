@@ -57,6 +57,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Avatar).HasMaxLength(500);
             entity.Property(e => e.Model).HasMaxLength(100);
+            entity.Property(e => e.Temperature).HasDefaultValue(0.7m);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
             

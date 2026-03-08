@@ -14,13 +14,16 @@ public class MemberService : IMemberService
 {
     private readonly IMemberRepository _memberRepository;
     private readonly IRoleRepository _roleRepository;
+    private readonly IApiConfigRepository _apiConfigRepository;
 
     public MemberService(
         IMemberRepository memberRepository,
-        IRoleRepository roleRepository)
+        IRoleRepository roleRepository,
+        IApiConfigRepository apiConfigRepository)
     {
         _memberRepository = memberRepository;
         _roleRepository = roleRepository;
+        _apiConfigRepository = apiConfigRepository;
     }
 
     public async Task<IReadOnlyList<MemberListItemDto>> GetAllMembersAsync()
@@ -50,6 +53,20 @@ public class MemberService : IMemberService
         if (role == null)
             throw new InvalidOperationException($"Role with ID {request.RoleId} not found");
 
+        // 获取API配置，用于获取默认模型
+        ApiConfig? apiConfig = null;
+        if (request.ApiConfigId != Guid.Empty)
+        {
+            apiConfig = await _apiConfigRepository.GetByIdAsync(request.ApiConfigId);
+        }
+
+        // 如果未指定模型，使用API配置的默认模型
+        var model = request.Model;
+        if (string.IsNullOrEmpty(model) && apiConfig != null)
+        {
+            model = apiConfig.Model;
+        }
+
         var member = new Member
         {
             Id = Guid.NewGuid(),
@@ -59,7 +76,9 @@ public class MemberService : IMemberService
             Status = MemberStatus.Online,
             RoleId = request.RoleId,
             ApiConfigId = request.ApiConfigId,
-            Model = request.Model,
+            Model = model,
+            Temperature = request.Temperature,
+            MaxTokens = request.MaxTokens,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -116,6 +135,11 @@ public class MemberService : IMemberService
                 member.ApiConfigId = request.ApiConfigId.Value;
 
             member.Model = request.Model;
+            
+            if (request.Temperature.HasValue)
+                member.Temperature = request.Temperature.Value;
+            
+            member.MaxTokens = request.MaxTokens;
         }
 
         member.UpdatedAt = DateTime.UtcNow;
@@ -153,7 +177,9 @@ public class MemberService : IMemberService
             RoleName = member.Role?.Name,
             RoleDisplayName = member.Role?.DisplayName,
             ApiConfigName = member.ApiConfig?.Name,
-            Model = member.Model
+            Model = member.Model,
+            Temperature = member.Temperature,
+            MaxTokens = member.MaxTokens
         };
     }
 
@@ -183,7 +209,9 @@ public class MemberService : IMemberService
             },
             ApiConfigId = member.ApiConfigId,
             ApiConfigName = member.ApiConfig?.Name,
-            Model = member.Model
+            Model = member.Model,
+            Temperature = member.Temperature,
+            MaxTokens = member.MaxTokens
         };
     }
 

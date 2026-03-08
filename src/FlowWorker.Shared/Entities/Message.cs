@@ -44,9 +44,9 @@ public class Message
     public Guid SessionId { get; set; }
 
     /// <summary>
-    /// 发送者ID（关联Member）
+    /// 发送者ID（关联Member）- 群聊时使用
     /// </summary>
-    public Guid MemberId { get; set; }
+    public Guid? MemberId { get; set; }
 
     /// <summary>
     /// 角色（user/assistant/system/tool）- 保留用于兼容OpenAI API

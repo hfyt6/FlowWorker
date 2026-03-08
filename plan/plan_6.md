@@ -1,253 +1,388 @@
-# 第六步：Coder角色增强与工具系统
+# 第六步：提示词工程实现
 
 ## 目标
-实现Coder角色的高级功能，包括三层记忆系统、工具调用系统和对话循环，参考Cline的功能设计。
+基于 docs/prompt_tech.md 和 docs/prompt_cline_tech.md 的技术文档，为每个角色设计并实现专门的提示词工程方案，包括提示词模板管理系统和高级提示词技术。
 
 ## 具体任务
 
-### 6.1 三层记忆系统实现
+### 6.1 提示词模板管理系统
 
-#### 6.1.1 短期记忆（Context Memory - 滑动窗口）
-- [ ] 实现 SlidingWindowManager：
-  - Token 预算管理（默认4000 tokens）
-  - 消息重要性评分算法
-  - 自动修剪策略（保留系统提示、工具结果）
-  - 上下文构建器（ContextBuilder）
-- [ ] 实现 Token 计数器：
-  - 基于 tiktoken 的 Token 估算
-  - 消息 Token 计算
-  - 系统提示词 Token 计算
-- [ ] 集成到 MessageService：
-  - 发送消息前进行上下文修剪
-  - 保持关键消息不被裁剪
-
-#### 6.1.2 中期记忆（Task Memory - 任务级）
-- [ ] 创建 Task 实体：
-  - Id, SessionId, Title, Status, CreatedAt, UpdatedAt
-  - 关联的工具调用记录
-  - 文件修改历史
-- [ ] 实现 TaskStorage 服务：
-  - 任务状态持久化到文件系统（.flowworker/memory/tasks/）
-  - 任务创建、更新、查询、删除
-  - 任务恢复机制
-- [ ] 实现 ToolCallRecord：
-  - 记录每次工具调用的详细信息
-  - 调用参数和返回结果
-  - 执行时间和状态
-- [ ] 实现 FileModificationTracker：
-  - 追踪文件创建、修改、删除
-  - 文件变更历史记录
-  - 支持撤销操作
-
-#### 6.1.3 长期记忆（Long-term Memory - 跨任务）
-- [ ] 实现 CustomInstructionStorage：
-  - 自定义指令存储（全局/工作区级别）
-  - 指令编辑和管理
-  - 指令应用到会话
-- [ ] 实现 ModePreferences：
-  - 不同模式（Code/Architect/Ask）的偏好设置
-  - 模式切换时自动应用
-- [ ] 实现全局配置记忆：
-  - API配置默认设置
-  - 界面偏好设置
-  - 快捷键配置
-
-### 6.2 工具系统实现
-
-#### 6.2.1 工具框架
-- [ ] 定义工具接口和基类：
-  - ITool 接口（Name, Description, Parameters, Execute）
-  - ToolBase 抽象基类
-  - ToolResult 结果封装
-- [ ] 实现工具注册中心（ToolRegistry）：
-  - 工具发现和注册
-  - 按角色过滤可用工具
-  - 工具元数据管理
-- [ ] 实现工具执行引擎：
-  - 工具调用解析
-  - 参数验证
-  - 执行和错误处理
-  - 结果格式化
-
-#### 6.2.2 内置工具实现
-- [ ] 文件操作工具：
-  - read_file - 读取文件内容
-  - write_file - 写入文件内容
-  - list_files - 列出目录文件
-  - search_files - 搜索文件内容
-- [ ] 代码分析工具：
-  - analyze_code - 代码分析
-  - find_symbols - 查找符号定义
-- [ ] 执行工具：
-  - execute_command - 执行Shell命令
-  - check_syntax - 语法检查
-- [ ] 其他工具：
-  - ask_followup - 向用户询问
-  - attempt_completion - 完成任务
-
-#### 6.2.3 工具调用协议
-- [ ] 实现工具定义格式（OpenAI Function Calling 兼容）：
-  - 工具名称和描述
-  - 参数Schema定义
-  - 必需参数标记
-- [ ] 实现工具调用解析：
-  - 从AI响应中提取工具调用
-  - 参数JSON解析
-  - 批量工具调用支持
-- [ ] 实现工具结果反馈：
-  - 工具执行结果格式化
-  - 错误信息处理
-  - 结果添加到消息历史
-
-### 6.3 对话循环实现（runLoop）
-
-#### 6.3.1 核心对话循环
-- [ ] 实现 CoderRoleService：
-  - 初始化对话循环
-  - 管理消息历史
-  - 协调工具调用
-- [ ] 实现对话循环逻辑：
+#### 6.1.1 提示词存储结构
+- [ ] 创建提示词模板目录结构：
   ```
-  1. 接收用户输入
-  2. 构建API请求（系统提示 + 历史 + 工具定义）
-  3. 调用LLM获取响应（流式）
-  4. 处理响应内容
-     - 普通内容 → 显示给用户
-     - 工具调用 → 执行工具
-  5. 如有工具调用，将结果加入历史
-  6. 递归调用（深度+1，检查最大迭代）
-  7. 无工具调用时结束循环
+  prompts/
+  ├── system/
+  │   ├── coder.md
+  │   ├── ui-designer.md
+  │   ├── architect.md
+  │   ├── reviewer.md
+  │   └── general.md
+  ├── templates/
+  │   ├── code-review.md
+  │   ├── task-analysis.md
+  │   └── design-feedback.md
+  └── examples/
+      ├── few-shot-examples.json
+      └── conversation-patterns.json
   ```
-- [ ] 实现循环控制：
-  - 最大迭代次数限制（默认10次）
-  - 用户取消支持
-  - 错误阈值控制
-  - 超时处理
+- [ ] 实现 PromptTemplate 实体：
+  - Id, Name, Role, Content, Variables, IsBuiltIn
+- [ ] 实现提示词模板 Repository：
+  - IPromptTemplateRepository 接口
+  - PromptTemplateRepository 实现
+  - 支持模板的 CRUD 操作
 
-#### 6.3.2 流式响应处理增强
-- [ ] 实现流解析器（StreamParser）：
-  - 解析SSE流中的内容块
-  - 识别工具调用块
-  - 增量内容更新
-- [ ] 实现内容收集器：
-  - 收集流式内容片段
-  - 组装完整响应
-  - 提取工具调用信息
-- [ ] 更新前端流式显示：
-  - 实时显示思考过程
-  - 显示工具调用状态
-  - 显示执行结果
+#### 6.1.2 提示词模板服务
+- [ ] 实现 PromptTemplateService：
+  - 获取角色对应的系统提示词
+  - 模板变量替换功能
+  - 支持自定义指令注入
+- [ ] 实现模板变量解析器：
+  - `{customInstructions}` - 用户自定义指令
+  - `{workspace}` - 工作区路径
+  - `{mode}` - 当前模式
+  - `{history}` - 对话历史摘要
+- [ ] 实现模板缓存机制：
+  - 内存缓存常用模板
+  - 支持模板热重载
 
-### 6.4 Coder角色配置
+#### 6.1.3 提示词模板 API
+- [ ] 实现 PromptsController：
+  - GET /api/v1/prompts - 获取提示词模板列表
+  - GET /api/v1/prompts/{role} - 获取角色提示词
+  - PUT /api/v1/prompts/{id} - 更新自定义模板
+  - POST /api/v1/prompts/{role}/reset - 重置为内置模板
+- [ ] 实现模板预览 API：
+  - POST /api/v1/prompts/preview - 预览渲染后的提示词
 
-#### 6.4.1 系统提示词模板
+### 6.2 Coder 角色提示词实现（参考 Cline）
+
+#### 6.2.1 系统提示词架构
 - [ ] 实现 Coder 角色系统提示词：
-  - 角色定义和能力说明
-  - 工具使用指南
-  - 代码规范要求
-  - 响应格式要求
-- [ ] 支持提示词模板变量：
-  - {customInstructions} - 自定义指令
-  - {mode} - 当前模式
-  - {workspace} - 工作区路径
+  ```markdown
+  # 角色定义
+  你是一位资深全栈开发工程师，名为 Coder，专注于代码实现、文件操作和工具调用。
+  你具备多种编程语言、框架、设计模式和最佳实践的深厚知识。
 
-#### 6.4.2 角色特定配置
+  # 核心能力
+  - 代码生成和修改
+  - 文件读写操作
+  - Shell 命令执行
+  - 代码分析和审查
+  - 问题诊断和修复
+
+  # 行为准则
+  1. 始终保持专业和精确的工作态度
+  2. 优先理解用户需求的完整上下文
+  3. 执行操作前确认理解正确
+  4. 提供清晰的代码注释和说明
+  5. 遵循项目现有的代码规范和结构
+
+  # 工具使用规范
+  你拥有以下工具：
+  - read_file: 读取文件内容
+  - write_file: 创建/覆盖文件
+  - replace_in_file: 局部修改文件
+  - search_files: 搜索文件内容
+  - list_files: 列出目录文件
+  - execute_command: 执行 Shell 命令
+  - ask_followup_question: 向用户询问
+
+  # 工具调用格式
+  使用 XML 格式调用工具：
+  <tool_name>
+  <parameter_name>value</parameter_name>
+  </tool_name>
+
+  # 工作流程
+  1. 分析任务需求
+  2. 制定执行计划
+  3. 逐步执行（使用工具）
+  4. 验证结果
+  5. 完成任务或请求反馈
+
+  # 输出格式
+  - 使用 Markdown 格式化代码和说明
+  - 代码块指定语言类型
+  - 重要信息使用强调标记
+  ```
+
+#### 6.2.2 高级提示词技术集成
+- [ ] 实现思维链（Chain of Thought）：
+  - 使用 `<thinking></thinking>` 标签进行推理
+  - 在复杂任务中引导模型展示推理过程
+- [ ] 实现任务进度追踪：
+  - 使用 `<task_progress>` 标签跟踪任务状态
+  - 支持 Markdown checklist 格式
+- [ ] 实现迭代式执行：
+  - 逐步验证，确保准确性
+  - 支持工具调用后的递归继续
+- [ ] 实现上下文管理：
+  - 滑动窗口管理对话历史
+  - 基于 Token 预算自动修剪
+
+#### 6.2.3 Coder 角色配置
 - [ ] 实现 CoderRoleOptions：
-  - 最大迭代次数
-  - Token预算
+  - 最大迭代次数配置
+  - Token 预算设置
   - 工具白名单/黑名单
   - 自动执行设置
 - [ ] 实现模式切换：
-  - Code模式（专注代码实现）
-  - Architect模式（专注架构设计）
-  - Ask模式（专注问答）
+  - Code 模式（专注代码实现）
+  - Architect 模式（专注架构设计）
+  - Ask 模式（专注问答）
 
-### 6.5 前端适配
+### 6.3 UI Designer 角色提示词实现
 
-#### 6.5.1 任务记忆界面
-- [ ] 实现任务列表面板：
-  - 显示当前会话的任务
-  - 任务状态指示
-  - 任务详情查看
-- [ ] 实现工具调用历史：
-  - 显示工具调用记录
-  - 查看调用参数和结果
-  - 支持重新执行
+#### 6.3.1 系统提示词
+- [ ] 实现 UI Designer 角色系统提示词：
+  ```markdown
+  # 角色定义
+  你是一位专业的 UI/UX 设计师，名为 UI Designer，专注于界面设计、样式开发和用户体验优化。
 
-#### 6.5.2 工具执行界面
-- [ ] 实现工具调用显示：
-  - 显示正在执行的工具
-  - 显示工具执行进度
-  - 显示工具执行结果
-- [ ] 实现文件变更显示：
-  - 显示修改的文件列表
-  - 文件变更对比视图
-  - 撤销文件修改
+  # 核心能力
+  - 界面布局和组件设计
+  - CSS/TailwindCSS 样式开发
+  - 响应式设计
+  - 色彩搭配和视觉层次
+  - 用户体验优化建议
 
-#### 6.5.3 自定义指令编辑器
-- [ ] 实现指令编辑界面：
-  - 全局指令编辑
-  - 工作区指令编辑
-  - 实时预览效果
+  # 行为准则
+  1. 以用户为中心进行设计
+  2. 遵循现代设计趋势和规范
+  3. 考虑可访问性和包容性
+  4. 提供设计理由和参考
+
+  # 输出格式
+  - 使用 Markdown 展示设计说明
+  - 提供代码示例和预览效果
+  - 附上设计参考和最佳实践
+  ```
+
+#### 6.3.2 UI Designer 特定功能
+- [ ] 实现设计建议生成
+- [ ] 实现色彩搭配推荐
+- [ ] 实现组件库引用
+
+### 6.4 Architect 角色提示词实现
+
+#### 6.4.1 系统提示词
+- [ ] 实现 Architect 角色系统提示词：
+  ```markdown
+  # 角色定义
+  你是一位资深软件架构师，名为 Architect，专注于系统架构设计、技术选型和方案规划。
+
+  # 核心能力
+  - 系统架构设计
+  - 技术选型和评估
+  - 架构模式分析
+  - 可扩展性和可维护性规划
+  - 风险识别和缓解策略
+
+  # 行为准则
+  1. 从全局视角分析问题
+  2. 权衡各种方案的利弊
+  3. 考虑长期维护和演进
+  4. 提供清晰的架构图和说明
+
+  # 输出格式
+  - 使用图表和结构化描述
+  - 提供多方案对比分析
+  - 给出明确的推荐方案
+  ```
+
+#### 6.4.2 Architect 特定功能
+- [ ] 实现架构模式库
+- [ ] 实现技术选型评估框架
+- [ ] 实现风险评估矩阵
+
+### 6.5 Reviewer 角色提示词实现
+
+#### 6.5.1 系统提示词
+- [ ] 实现 Reviewer 角色系统提示词：
+  ```markdown
+  # 角色定义
+  你是一位资深代码审查专家，名为 Reviewer，专注于代码质量检查、问题识别和优化建议。
+
+  # 核心能力
+  - 代码问题识别
+  - 最佳实践检查
+  - 性能瓶颈分析
+  - 安全漏洞检测
+  - 重构建议
+
+  # 行为准则
+  1. 保持建设性和友善的态度
+  2. 优先指出严重问题
+  3. 提供具体的改进建议
+  4. 肯定代码的优点
+
+  # 输出格式
+  使用以下 Markdown 结构：
+  ## 🐛 发现的问题
+  ## 💡 优化建议
+  ## ✅ 优点
+  ```
+
+#### 6.5.2 Reviewer 特定功能
+- [ ] 实现代码质量评分
+- [ ] 实现问题分类系统
+- [ ] 实现最佳实践检查清单
+
+### 6.6 General 角色提示词实现
+
+#### 6.6.1 系统提示词
+- [ ] 实现 General 角色系统提示词：
+  ```markdown
+  # 角色定义
+  你是一位通用 AI 助手，名为 General，专注于信息查询、问题解答和日常对话。
+
+  # 核心能力
+  - 通用知识问答
+  - 信息查询和总结
+  - 问题分析和解答
+  - 创意写作和内容生成
+
+  # 行为准则
+  1. 提供准确和有用的信息
+  2. 保持友善和专业的语气
+  3. 承认知识边界，不编造信息
+  4. 必要时建议咨询专业人士
+
+  # 输出格式
+  - 结构化回答，层次清晰
+  - 重要信息突出显示
+  - 必要时提供参考资料
+  ```
+
+### 6.7 多 Agent 协作提示词策略
+
+#### 6.7.1 角色分配提示词
+- [ ] 实现团队协作配置：
+  ```markdown
+  # 团队协作配置
+
+  ## Agent 1：项目经理
+  职责：任务分解、进度跟踪、资源协调
+  沟通风格：结构化、目标导向
+
+  ## Agent 2：技术专家（Coder）
+  职责：技术方案设计、代码审查、问题解决
+  沟通风格：精确、技术性强
+
+  ## Agent 3：用户体验设计师
+  职责：界面设计、用户流程、可用性评估
+  沟通风格：同理心、视觉化
+
+  # 协作规则
+  1. 每个 Agent 从自己的专业角度分析问题
+  2. 定期同步信息和进展
+  3. 出现分歧时通过讨论达成共识
+  ```
+
+#### 6.7.2 对话协调提示词
+- [ ] 实现讨论流程管理：
+  ```markdown
+  # 讨论主题：[主题]
+
+  # 讨论流程
+  1. 项目经理开场，明确讨论目标
+  2. 各 Agent 依次发表观点
+  3. 自由讨论，交换意见
+  4. 项目经理总结，形成结论
+
+  # 发言格式
+  [角色名称]: [观点内容]
+
+  # 开始讨论
+  ```
+
+### 6.8 高级提示词技术实现
+
+#### 6.8.1 Zero-shot Prompting
+- [ ] 实现直接任务执行
+
+#### 6.8.2 Few-shot Prompting
+- [ ] 实现示例学习
+- [ ] 创建示例库
+
+#### 6.8.3 Chain of Thought (CoT)
+- [ ] 实现推理过程引导
+- [ ] 实现"逐步思考"模式
+
+#### 6.8.4 Tree of Thoughts (ToT)
+- [ ] 实现多路径探索
+- [ ] 实现角度分析模式
+
+#### 6.8.5 ReAct (Reasoning + Acting)
+- [ ] 实现推理与行动结合
+- [ ] 实现工具调用链
+
+#### 6.8.6 Self-Reflection
+- [ ] 实现自我审查机制
+- [ ] 实现错误检测和修正
+
+### 6.9 前端提示词管理界面
+
+#### 6.9.1 提示词模板管理
+- [ ] 实现提示词模板列表页面
+- [ ] 实现提示词编辑器
+- [ ] 实现模板预览功能
+- [ ] 实现变量高亮显示
+
+#### 6.9.2 角色提示词配置
+- [ ] 实现角色提示词配置页面
+- [ ] 实现自定义指令编辑
+- [ ] 实现模式切换配置
 
 ## 预期成果
-- 完整的三层记忆系统架构
-- 功能完善的工具系统
-- 支持工具调用的对话循环
-- Coder角色的高级功能实现
-- 前端适配工具执行和记忆管理
+- 完整的提示词模板管理系统
+- 五个角色的系统提示词实现
+- Coder 角色的高级提示词技术（参考 Cline）
+- 多 Agent 协作提示词策略
+- 高级提示词技术实现
+- 前端提示词管理界面
 
 ## 验收标准
-- 滑动窗口能够根据Token预算自动修剪历史
-- 任务状态能够正确持久化和恢复
-- 工具能够被正确注册、调用和执行
-- 对话循环能够正确处理工具调用和递归
-- 流式响应能够实时显示工具执行状态
-- 文件修改能够被正确追踪和记录
-- 自定义指令能够按作用域正确应用
-- 最大迭代次数能够正确限制循环深度
+- 能够正确加载和渲染角色提示词
+- 模板变量能够正确替换
+- Coder 角色支持思维链和任务进度追踪
+- 多 Agent 协作提示词能够正确引导对话
+- 高级提示词技术能够正常工作
+- 前端能够编辑和预览提示词模板
 
 ## 技术要点
 
-### 工具定义示例
-```json
+### 提示词模板数据结构
+```csharp
+public class PromptTemplate
 {
-  "name": "read_file",
-  "description": "读取指定文件的内容",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "path": {
-        "type": "string",
-        "description": "文件路径"
-      }
-    },
-    "required": ["path"]
-  }
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    public string Role { get; set; }  // coder, ui-designer, etc.
+    public string Content { get; set; }
+    public List<string> Variables { get; set; }
+    public bool IsBuiltIn { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }
 ```
 
-### 对话循环状态机
-```
-[Idle] → 用户输入 → [Processing]
-[Processing] → 流式响应 → [Streaming]
-[Streaming] → 工具调用 → [ToolExecuting]
-[ToolExecuting] → 执行完成 → [Processing]
-[Streaming] → 无工具调用 → [Complete]
-[Processing] → 达到最大迭代 → [Complete]
-[任何状态] → 用户取消 → [Cancelled]
+### 模板变量替换示例
+```csharp
+public string RenderTemplate(string template, Dictionary<string, string> variables)
+{
+    var result = template;
+    foreach (var kvp in variables)
+    {
+        result = result.Replace($"{{{kvp.Key}}}", kvp.Value);
+    }
+    return result;
+}
 ```
 
-### 记忆系统存储结构
-```
-.flowworker/
-├── memory/
-│   ├── tasks/
-│   │   ├── {task_id}.json
-│   │   └── ...
-│   ├── instructions/
-│   │   ├── global.json
-│   │   └── {workspace_id}.json
-│   └── preferences/
-│       └── mode_preferences.json
-```
+### Coder 角色提示词关键点
+- 角色定义清晰明确
+- 工具使用规范详细
+- 工作流程结构化
+- 支持高级提示词技术（CoT, task_progress）

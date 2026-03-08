@@ -5,20 +5,28 @@
     import { page } from '$app/state';
     import { sessionApi } from '$lib/services/api';
     import { apiConfigs, fetchConfigs } from '$lib/stores/apiConfigStore';
-    import SelectApiConfigModal from '$lib/components/SelectApiConfigModal.svelte';
+    import { members, fetchMembers } from '$lib/stores/memberStore';
+    import SelectSessionTypeModal from '$lib/components/SelectSessionTypeModal.svelte';
+    import CreateSingleSessionModal from '$lib/components/CreateSingleSessionModal.svelte';
+    import CreateGroupSessionModal from '$lib/components/CreateGroupSessionModal.svelte';
     import type { ApiConfigListItemDto } from '$lib/types/apiConfig';
+    import type { MemberListItemDto } from '$lib/types/member';
 
     // State
     let searchQuery = '';
     let isDeleting = false;
     let deleteId = '';
-    let isModalOpen = false;
-    let selectedConfig: ApiConfigListItemDto | null = null;
+    
+    // 弹窗状态
+    let isSessionTypeModalOpen = false;
+    let isSingleSessionModalOpen = false;
+    let isGroupSessionModalOpen = false;
 
     // Component lifecycle
     onMount(() => {
         fetchSessions();
         fetchConfigs();
+        fetchMembers();
     });
 
     // Handlers
@@ -31,47 +39,41 @@
             return;
         }
         
-        // 如果只有一个配置，直接使用
-        if (configs.length === 1) {
-            try {
-                const id = await createSession({
-                    title: 'New Session',
-                    apiConfigId: configs[0].id,
-                    model: configs[0].model,
-                    systemPrompt: 'You are a helpful assistant.',
-                    temperature: 0.7,
-                    maxTokens: null
-                });
-                goto(`/sessions/${id}`);
-            } catch (err) {
-                console.error('Failed to create session:', err);
-            }
-        } else {
-            // 显示选择弹窗
-            isModalOpen = true;
+        // 显示选择会话类型弹窗
+        isSessionTypeModalOpen = true;
+    }
+
+    function handleSessionTypeSelect(event: CustomEvent<{ type: string }>) {
+        const { type } = event.detail;
+        isSessionTypeModalOpen = false;
+        
+        if (type === 'single') {
+            isSingleSessionModalOpen = true;
+        } else if (type === 'group') {
+            isGroupSessionModalOpen = true;
         }
     }
 
-    async function handleSelectConfig(config: ApiConfigListItemDto, sessionName: string) {
-        selectedConfig = config;
-        try {
-            const id = await createSession({
-                title: sessionName,
-                apiConfigId: config.id,
-                model: config.model,
-                systemPrompt: 'You are a helpful assistant.',
-                temperature: 0.7,
-                maxTokens: null
-            });
-            goto(`/sessions/${id}`);
-        } catch (err) {
-            console.error('Failed to create session:', err);
-        }
+    function closeSessionTypeModal() {
+        isSessionTypeModalOpen = false;
     }
 
-    function closeModal() {
-        isModalOpen = false;
-        selectedConfig = null;
+    function closeSingleSessionModal() {
+        isSingleSessionModalOpen = false;
+    }
+
+    function closeGroupSessionModal() {
+        isGroupSessionModalOpen = false;
+    }
+
+    function handleSessionCreated(event: CustomEvent<{ sessionId: string }>) {
+        const { sessionId } = event.detail;
+        goto(`/sessions/${sessionId}`);
+    }
+
+    function handleGroupSessionCreated() {
+        // 群聊创建成功后刷新列表
+        fetchSessions();
     }
 
     async function handleDeleteSession(id: string, e: MouseEvent) {
@@ -178,10 +180,29 @@
         </div>
     {/if}
 
-    <SelectApiConfigModal 
-        isOpen={isModalOpen} 
-        onClose={closeModal} 
-        onSelect={handleSelectConfig} 
+    <!-- 选择会话类型弹窗 -->
+    <SelectSessionTypeModal 
+        isOpen={isSessionTypeModalOpen} 
+        on:close={closeSessionTypeModal}
+        on:select={handleSessionTypeSelect}
+    />
+
+    <!-- 创建单聊弹窗 -->
+    <CreateSingleSessionModal
+        isOpen={isSingleSessionModalOpen}
+        members={$members}
+        apiConfigs={$apiConfigs}
+        on:close={closeSingleSessionModal}
+        on:created={handleSessionCreated}
+    />
+
+    <!-- 创建群聊弹窗 -->
+    <CreateGroupSessionModal
+        isOpen={isGroupSessionModalOpen}
+        members={$members}
+        apiConfigs={$apiConfigs}
+        on:close={closeGroupSessionModal}
+        on:created={handleGroupSessionCreated}
     />
 </div>
 

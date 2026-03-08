@@ -8,7 +8,8 @@ import StreamMessage from '$lib/components/StreamMessage.svelte';
 import MarkdownRenderer from '$lib/components/MarkdownRenderer.svelte';
 import { MessageRole } from '$lib/types/message';
 import type { MessageListItemDto } from '$lib/types/message';
-import type { ApiConfigListItemDto, SessionDetailDto } from '$lib/types';
+import type { ApiConfigListItemDto, SessionDetailDto, SessionMemberDto } from '$lib/types';
+import { SessionType } from '$lib/types/session';
 
 // State
 let sessionId = '';
@@ -26,6 +27,11 @@ let isLoadingConfigs = false;
 let isUpdatingConfig = false;
 let showConfigDropdown = false;
 let configDropdownElement: HTMLDivElement;
+
+// 群聊状态
+let isGroupSession = false;
+let isProcessingGroup = false;
+let currentProcessingMember: string | null = null;
 
 // 将后端返回的 role（可能是数字或字符串）转换为字符串
 function normalizeRole(role: MessageRole | number | string): MessageRole {
@@ -68,9 +74,76 @@ async function loadSessionDetail(id: string) {
         currentSession = await sessionApi.getSession(id);
         if (currentSession) {
             selectedConfigId = currentSession.apiConfigId;
+            // 检测会话类型
+            isGroupSession = currentSession.type === SessionType.Group;
         }
     } catch (err) {
         console.error('Failed to load session detail:', err);
+    }
+}
+
+// 发送群聊消息
+async function handleSendGroupMessage() {
+    if (!inputMessage.trim() || isSending || !currentSession?.participants?.length) {
+        return;
+    }
+
+    isSending = true;
+    isProcessingGroup = true;
+
+    // 保存用户输入并清空输入框
+    const userContent = inputMessage.trim();
+    inputMessage = '';
+
+    // 添加用户消息到列表
+    const userMessageId = 'user-' + Date.now();
+    messages.update(currentMessages => [
+        ...currentMessages,
+        {
+            id: userMessageId,
+            role: MessageRole.User,
+            content: userContent,
+            tokens: null,
+            model: null,
+            createdAt: new Date().toISOString()
+        }
+    ]);
+
+    isAiResponding = true;
+
+    try {
+        // 获取第一个参与者作为发送者（实际应用中可能是当前用户）
+        const humanParticipant = currentSession.participants.find(p => p.memberType === 'Human') || currentSession.participants[0];
+        
+        // 调用群聊消息 API
+        const responses = await messageApi.sendGroupMessage(sessionId, {
+            content: userContent,
+            senderId: humanParticipant.memberId
+        });
+
+        // 将响应消息添加到列表
+        if (responses && responses.length > 0) {
+            for (const response of responses) {
+                messages.update(currentMessages => [
+                    ...currentMessages,
+                    {
+                        id: response.id || 'assistant-' + Date.now(),
+                        role: MessageRole.Assistant,
+                        content: response.content,
+                        tokens: response.tokens,
+                        model: null,
+                        createdAt: new Date().toISOString()
+                    }
+                ]);
+            }
+        }
+    } catch (err) {
+        console.error('[Page] 发送群聊消息失败:', err);
+        error.set(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+        isAiResponding = false;
+        isSending = false;
+        isProcessingGroup = false;
     }
 }
 
@@ -307,7 +380,12 @@ $: isInputEmpty = !inputMessage.trim();
 function handleKeyDown(e: KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        handleSendMessage();
+        // 根据会话类型选择不同的发送方法
+        if (isGroupSession) {
+            handleSendGroupMessage();
+        } else {
+            handleSendMessage();
+        }
     }
     // Shift + Enter 会默认换行，不需要额外处理
 }
@@ -473,7 +551,7 @@ function handleKeyDown(e: KeyboardEvent) {
             ></textarea>
             <button
                 class="btn-send"
-                on:click={handleSendMessage}
+                on:click={() => isGroupSession ? handleSendGroupMessage() : handleSendMessage()}
                 disabled={isInputEmpty || isSending}
             >
                 {#if isSending}

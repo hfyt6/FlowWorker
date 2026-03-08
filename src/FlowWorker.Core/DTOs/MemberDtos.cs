@@ -20,6 +20,8 @@ public class MemberListItemDto
     public string? RoleDisplayName { get; set; }
     public string? ApiConfigName { get; set; }
     public string? Model { get; set; }
+    public decimal Temperature { get; set; } = 0.7m;
+    public int? MaxTokens { get; set; }
 }
 
 /// <summary>
@@ -41,6 +43,8 @@ public class MemberDetailDto
     public Guid? ApiConfigId { get; set; }
     public string? ApiConfigName { get; set; }
     public string? Model { get; set; }
+    public decimal Temperature { get; set; } = 0.7m;
+    public int? MaxTokens { get; set; }
 }
 
 /// <summary>
@@ -53,6 +57,8 @@ public class CreateAIMemberRequest
     public Guid RoleId { get; set; }
     public Guid ApiConfigId { get; set; }
     public string? Model { get; set; }
+    public decimal Temperature { get; set; } = 0.7m;
+    public int? MaxTokens { get; set; }
 }
 
 /// <summary>
@@ -68,4 +74,6 @@ public class UpdateMemberRequest
     public Guid? RoleId { get; set; }
     public Guid? ApiConfigId { get; set; }
     public string? Model { get; set; }
+    public decimal? Temperature { get; set; }
+    public int? MaxTokens { get; set; }
 }

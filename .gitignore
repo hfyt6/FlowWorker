@@ -104,6 +104,8 @@ artifacts/
 # Others
 sql/
 *.db
+*.db-shm
+*.db-wal
 *.mdl
 *.mdf
 *.ldf
