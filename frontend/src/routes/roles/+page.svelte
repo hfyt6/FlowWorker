@@ -280,19 +280,19 @@
 					
 					<div class="card-footer">
 						<span class="date">创建于 {formatDate(role.createdAt)}</span>
-						<div class="actions">
-							<button class="btn-icon" on:click={() => openDetailModal(role)} title="查看详情">
-								👁️
+					<div class="actions">
+						<button class="btn-icon" on:click={() => openDetailModal(role)} title="查看详情">
+							👁️
+						</button>
+						<button class="btn-icon" on:click={() => openEditModal(role)} title="编辑">
+							✏️
+						</button>
+						{#if !role.isBuiltIn}
+							<button class="btn-icon" on:click={() => openDeleteModal(role)} title="删除">
+								🗑️
 							</button>
-							{#if !role.isBuiltIn}
-								<button class="btn-icon" on:click={() => openEditModal(role)} title="编辑">
-									✏️
-								</button>
-								<button class="btn-icon" on:click={() => openDeleteModal(role)} title="删除">
-									🗑️
-								</button>
-							{/if}
-						</div>
+						{/if}
+					</div>
 					</div>
 				</div>
 			{/each}

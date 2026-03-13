@@ -4,15 +4,20 @@ using FlowWorker.Core.Repositories;
 using FlowWorker.Core.Services;
 using FlowWorker.Infrastructure;
 using FlowWorker.Infrastructure.OpenAI;
+using FlowWorker.Infrastructure.OpenAI.Formatters;
 using FlowWorker.Infrastructure.Repositories;
 using FlowWorker.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // 配置 Serilog 日志
 Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
     .WriteTo.Console()
     .WriteTo.File("logs/flowworker-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30)
     .CreateLogger();
@@ -48,11 +53,15 @@ builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<IApiConfigRepository, ApiConfigRepository>();
 builder.Services.AddScoped<IMemberRepository, MemberRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IPromptTemplateRepository, PromptTemplateRepository>();
 
 // 配置群聊选项
 builder.Services.Configure<GroupChatOptions>(builder.Configuration.GetSection("GroupChat"));
 builder.Services.AddScoped<GroupChatOptions>(sp => 
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<GroupChatOptions>>().Value);
+
+// 配置请求格式化器工厂（单例模式）
+builder.Services.AddSingleton<IRequestFormatterFactory, RequestFormatterFactory>();
 
 // 配置服务层
 builder.Services.AddScoped<ISessionService, SessionService>();
@@ -62,6 +71,7 @@ builder.Services.AddScoped<IMemberService, MemberService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddScoped<IGroupChatService, GroupChatService>();
+builder.Services.AddScoped<IPromptTemplateService, PromptTemplateService>();
 
 // 配置数据库初始化服务
 builder.Services.AddScoped<DatabaseInitializer>();

@@ -614,7 +614,7 @@ FlowWorker/
 
 ### 7.1 提示词工程概述
 
-基于 docs/prompt_tech.md 和 docs/prompt_cline_tech.md 的技术文档，为每个角色设计专门的提示词工程方案。
+基于 prompt 的技术文档，为每个角色设计专门的提示词工程方案。
 
 ### 7.2 提示词设计原则（CLEAR 原则）
 

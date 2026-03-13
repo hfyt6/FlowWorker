@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using FlowWorker.Shared.Entities;
 using FlowWorker.Shared.Enums;
+using FlowWorker.Core.Prompts;
 
 namespace FlowWorker.Infrastructure.Services;
 
@@ -38,6 +39,9 @@ public class DatabaseInitializer
 
         // 初始化默认用户成员
         await SeedDefaultUserMemberAsync();
+
+        // 初始化内置提示词模板
+        await SeedBuiltInPromptTemplatesAsync();
 
         // 种子数据逻辑
         if (await _context.Entity1s.AnyAsync())
@@ -94,10 +98,22 @@ public class DatabaseInitializer
             new()
             {
                 Id = Guid.NewGuid(),
-                Name = "code_assistant",
-                DisplayName = "代码助手",
-                Description = "专注于编程和代码相关的AI助手",
-                SystemPrompt = "你是一个专业的编程助手。你可以帮助用户编写、调试和优化代码。请提供清晰、可运行的代码示例，并解释关键概念。",
+                Name = "coder",
+                DisplayName = "代码工程师",
+                Description = "资深全栈开发工程师，专注于代码实现、文件操作和工具调用",
+                SystemPrompt = BuiltInPrompts.CoderSystemPrompt,
+                AllowedTools = JsonSerializer.Serialize(new List<string> { "read_file", "write_file", "replace_in_file", "search_files", "list_files", "execute_command", "ask_followup_question" }),
+                IsBuiltIn = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Name = "ui-designer",
+                DisplayName = "UI设计师",
+                Description = "专业的UI/UX设计师，专注于界面设计、样式开发和用户体验优化",
+                SystemPrompt = BuiltInPrompts.UIDesignerSystemPrompt,
                 AllowedTools = null,
                 IsBuiltIn = true,
                 CreatedAt = DateTime.UtcNow,
@@ -106,10 +122,10 @@ public class DatabaseInitializer
             new()
             {
                 Id = Guid.NewGuid(),
-                Name = "creative_writer",
-                DisplayName = "创意写手",
-                Description = "擅长创意写作和内容创作的AI助手",
-                SystemPrompt = "你是一个有创意的写作助手。你可以帮助用户进行创意写作、故事创作、文案撰写等工作。请用生动、富有想象力的语言回应。",
+                Name = "architect",
+                DisplayName = "架构师",
+                Description = "资深软件架构师，专注于系统架构设计、技术选型和方案规划",
+                SystemPrompt = BuiltInPrompts.ArchitectSystemPrompt,
                 AllowedTools = null,
                 IsBuiltIn = true,
                 CreatedAt = DateTime.UtcNow,
@@ -118,10 +134,10 @@ public class DatabaseInitializer
             new()
             {
                 Id = Guid.NewGuid(),
-                Name = "analyst",
-                DisplayName = "数据分析师",
-                Description = "擅长数据分析和逻辑推理的AI助手",
-                SystemPrompt = "你是一个数据分析专家。你可以帮助用户分析数据、识别模式、做出逻辑推理。请用结构化的方式呈现分析结果。",
+                Name = "reviewer",
+                DisplayName = "代码审查专家",
+                Description = "资深代码审查专家，专注于代码质量检查、问题识别和优化建议",
+                SystemPrompt = BuiltInPrompts.ReviewerSystemPrompt,
                 AllowedTools = null,
                 IsBuiltIn = true,
                 CreatedAt = DateTime.UtcNow,
@@ -130,10 +146,10 @@ public class DatabaseInitializer
             new()
             {
                 Id = Guid.NewGuid(),
-                Name = "teacher",
-                DisplayName = "教育导师",
-                Description = "擅长教育和知识传授的AI助手",
-                SystemPrompt = "你是一个耐心的教育导师。你可以帮助用户学习新知识、理解复杂概念。请用循序渐进的方式解释，并提供例子帮助理解。",
+                Name = "general",
+                DisplayName = "通用AI助手",
+                Description = "通用AI助手，专注于信息查询、问题解答和日常对话",
+                SystemPrompt = BuiltInPrompts.GeneralSystemPrompt,
                 AllowedTools = null,
                 IsBuiltIn = true,
                 CreatedAt = DateTime.UtcNow,
@@ -146,6 +162,37 @@ public class DatabaseInitializer
             if (!await _context.Roles.AnyAsync(r => r.Name == role.Name))
             {
                 await _context.Roles.AddAsync(role);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    private async Task SeedBuiltInPromptTemplatesAsync()
+    {
+        var builtInTemplates = BuiltInPrompts.GetAllBuiltInPrompts();
+
+        foreach (var template in builtInTemplates)
+        {
+            var existingTemplate = await _context.PromptTemplates
+                .FirstOrDefaultAsync(t => t.Role == template.Role && 
+                                          t.Name == template.Name && 
+                                          t.TemplateType == template.TemplateType);
+
+            if (existingTemplate == null)
+            {
+                // 新增内置模板
+                await _context.PromptTemplates.AddAsync(template);
+            }
+            else if (existingTemplate.IsBuiltIn && existingTemplate.Version < template.Version)
+            {
+                // 更新内置模板（版本升级）
+                existingTemplate.Content = template.Content;
+                existingTemplate.Variables = template.Variables;
+                existingTemplate.Description = template.Description;
+                existingTemplate.Version = template.Version;
+                existingTemplate.UpdatedAt = DateTime.UtcNow;
+                _context.PromptTemplates.Update(existingTemplate);
             }
         }
 

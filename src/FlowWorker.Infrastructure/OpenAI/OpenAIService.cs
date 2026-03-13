@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using FlowWorker.Core.Interfaces;
 using FlowWorker.Shared.DTOs;
@@ -10,16 +11,22 @@ namespace FlowWorker.Infrastructure.OpenAI;
 
 /// <summary>
 /// OpenAI 服务实现
+/// 支持多种请求格式模式
 /// </summary>
 public class OpenAIService : IOpenAIService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<OpenAIService> _logger;
+    private readonly IRequestFormatterFactory _formatterFactory;
 
-    public OpenAIService(HttpClient httpClient, ILogger<OpenAIService> logger)
+    public OpenAIService(
+        HttpClient httpClient,
+        ILogger<OpenAIService> logger,
+        IRequestFormatterFactory formatterFactory)
     {
         _httpClient = httpClient;
         _logger = logger;
+        _formatterFactory = formatterFactory;
     }
 
     public async Task<string> SendMessageAsync(
@@ -29,36 +36,110 @@ public class OpenAIService : IOpenAIService
         IEnumerable<Message> messages,
         string? systemPrompt = null,
         decimal? temperature = null,
-        int? maxTokens = null)
+        int? maxTokens = null,
+        string? requestFormat = null)
     {
-        var request = BuildRequest(messages, systemPrompt, model, temperature, maxTokens);
+        // 获取请求格式化器（默认使用 cline 模式）
+        var formatter = GetFormatter(requestFormat);
 
-        // 构建完整的 API URL
-        var apiUrl = BuildApiUrl(baseUrl, "/chat/completions");
+        // 构建请求体
+        var requestBody = formatter.BuildRequestBody(
+            model, messages, systemPrompt, temperature, maxTokens, false);
 
-        // 序列化请求内容用于日志记录
-        var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower });
+        // 构建 API URL
+        var apiUrl = formatter.BuildApiUrl(baseUrl, "/chat/completions");
+
+        // 序列化请求体，使用不转义 Unicode 的选项
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+        var requestJson = JsonSerializer.Serialize(requestBody, jsonOptions);
+
         _logger.LogDebug("OpenAI请求: {Request}", requestJson);
 
+        // 创建 HTTP 请求，使用 StringContent 来确保 Content-Length 正确设置
+        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, apiUrl)
         {
-            Content = JsonContent.Create(request, options: new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower })
+            Content = content
         };
 
-        httpRequest.Headers.Add("Authorization", $"Bearer {apiKey}");
+        // 添加请求头
+        var headers = formatter.GetRequestHeaders(apiKey);
+        foreach (var header in headers)
+        {
+            httpRequest.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
+
+        // Debug日志：记录完整请求信息
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("========== OpenAI API 请求开始 ==========");
+            _logger.LogDebug("请求格式模式: {FormatMode}", formatter.Name);
+            _logger.LogDebug("请求URL: {Url}", apiUrl);
+            _logger.LogDebug("请求方法: {Method}", httpRequest.Method);
+            _logger.LogDebug("请求头:");
+            foreach (var header in httpRequest.Headers)
+            {
+                var value = header.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase)
+                    ? "Bearer ***"
+                    : string.Join(", ", header.Value);
+                _logger.LogDebug("  {Key}: {Value}", header.Key, value);
+            }
+            if (httpRequest.Content?.Headers != null)
+            {
+                foreach (var header in httpRequest.Content.Headers)
+                {
+                    _logger.LogDebug("  {Key}: {Value}", header.Key, string.Join(", ", header.Value));
+                }
+            }
+            _logger.LogDebug("请求体: {RequestBody}", requestJson);
+            _logger.LogDebug("========================================");
+        }
 
         using var response = await _httpClient.SendAsync(httpRequest);
-        
+
+        // Debug日志：记录响应信息
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("========== OpenAI API 响应开始 ==========");
+            _logger.LogDebug("响应状态码: {StatusCode}", (int)response.StatusCode);
+            _logger.LogDebug("响应头:");
+            foreach (var header in response.Headers)
+            {
+                _logger.LogDebug("  {Key}: {Value}", header.Key, string.Join(", ", header.Value));
+            }
+            if (response.Content?.Headers != null)
+            {
+                foreach (var header in response.Content.Headers)
+                {
+                    _logger.LogDebug("  {Key}: {Value}", header.Key, string.Join(", ", header.Value));
+                }
+            }
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             var errorContent = await response.Content.ReadAsStringAsync();
             _logger.LogError("OpenAI API错误: StatusCode={StatusCode}, Response={Response}", response.StatusCode, errorContent);
         }
-        
+
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadFromJsonAsync<OpenAiResponse>();
-        return result?.Choices?.FirstOrDefault()?.Message?.Content ?? string.Empty;
+        var responseContent = await response.Content.ReadAsStringAsync();
+
+        // Debug日志：记录响应体
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("响应体: {ResponseBody}", responseContent);
+            _logger.LogDebug("========================================");
+        }
+
+        // 使用格式化器解析响应
+        return formatter.ParseResponse(responseContent);
     }
 
     public async Task<string> SendMessageStreamAsync(
@@ -69,27 +150,99 @@ public class OpenAIService : IOpenAIService
         Func<StreamContentChunk, Task> onChunk,
         string? systemPrompt = null,
         decimal? temperature = null,
-        int? maxTokens = null)
+        int? maxTokens = null,
+        string? requestFormat = null)
     {
-        var request = BuildRequest(messages, systemPrompt, model, temperature, maxTokens);
-        request.Stream = true;
+        // 获取请求格式化器（默认使用 cline 模式）
+        var formatter = GetFormatter(requestFormat);
 
-        // 构建完整的 API URL
-        var apiUrl = BuildApiUrl(baseUrl, "/chat/completions");
+        // 构建请求体
+        var requestBody = formatter.BuildRequestBody(
+            model, messages, systemPrompt, temperature, maxTokens, true);
 
+        // 构建 API URL
+        var apiUrl = formatter.BuildApiUrl(baseUrl, "/chat/completions");
+
+        // 序列化请求体，使用不转义 Unicode 的选项
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+        var requestJson = JsonSerializer.Serialize(requestBody, jsonOptions);
+
+        // 创建 HTTP 请求，使用 StringContent 来确保 Content-Length 正确设置
+        var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, apiUrl)
         {
-            Content = JsonContent.Create(request, options: new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower })
+            Content = content
         };
 
-        httpRequest.Headers.Add("Authorization", $"Bearer {apiKey}");
-        _logger.LogInformation($"### 开始 {model} " + apiUrl);
+        // 添加请求头
+        var headers = formatter.GetRequestHeaders(apiKey);
+        foreach (var header in headers)
+        {
+            httpRequest.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
+
+        // Debug日志：记录完整请求信息
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("========== OpenAI API 流式请求开始 ==========");
+            _logger.LogDebug("请求格式模式: {FormatMode}", formatter.Name);
+            _logger.LogDebug("请求URL: {Url}", apiUrl);
+            _logger.LogDebug("请求方法: {Method}", httpRequest.Method);
+            _logger.LogDebug("请求头:");
+            foreach (var header in httpRequest.Headers)
+            {
+                var value = header.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase)
+                    ? "Bearer ***"
+                    : string.Join(", ", header.Value);
+                _logger.LogDebug("  {Key}: {Value}", header.Key, value);
+            }
+            if (httpRequest.Content?.Headers != null)
+            {
+                foreach (var header in httpRequest.Content.Headers)
+                {
+                    _logger.LogDebug("  {Key}: {Value}", header.Key, string.Join(", ", header.Value));
+                }
+            }
+            _logger.LogDebug("请求体: {RequestBody}", requestJson);
+            _logger.LogDebug("========================================");
+        }
+
         using var response = await _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
-        _logger.LogInformation($"### 结束 {model} " + apiUrl);
+
+        // Debug日志：记录响应头信息
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("========== OpenAI API 流式响应开始 ==========");
+            _logger.LogDebug("响应状态码: {StatusCode}", (int)response.StatusCode);
+            _logger.LogDebug("响应头:");
+            foreach (var header in response.Headers)
+            {
+                _logger.LogDebug("  {Key}: {Value}", header.Key, string.Join(", ", header.Value));
+            }
+            if (response.Content?.Headers != null)
+            {
+                foreach (var header in response.Content.Headers)
+                {
+                    _logger.LogDebug("  {Key}: {Value}", header.Key, string.Join(", ", header.Value));
+                }
+            }
+            _logger.LogDebug("流式响应内容:");
+        }
+
+        if (response.StatusCode != System.Net.HttpStatusCode.OK)
+        {
+            string errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError("请求不OK： {Error}", errorContent);
+        }
         response.EnsureSuccessStatusCode();
 
         var fullContent = new StringBuilder();
-        
+
         using var stream = await response.Content.ReadAsStreamAsync();
         using var reader = new StreamReader(stream);
 
@@ -106,27 +259,33 @@ public class OpenAIService : IOpenAIService
                 var data = line.Substring(6);
                 if (data == "[DONE]")
                 {
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.LogDebug("  [DONE]");
+                    }
                     break;
                 }
 
                 try
                 {
-                    var chunk = JsonSerializer.Deserialize<OpenAiStreamChunk>(data, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower });
-                    
-                    if (chunk?.Choices != null && chunk.Choices.Count > 0)
+                    // 使用格式化器解析流式块
+                    var chunkContent = formatter.ParseStreamChunk(data);
+
+                    if (chunkContent != null)
                     {
-                        var choice = chunk.Choices[0];
-                        if (choice.Delta?.Content != null)
+                        fullContent.Append(chunkContent);
+
+                        // Debug日志：记录每个流式块
+                        if (_logger.IsEnabled(LogLevel.Debug))
                         {
-                            var content = choice.Delta.Content;
-                            fullContent.Append(content);
-                            
-                            await onChunk(new StreamContentChunk
-                            {
-                                Type = "content",
-                                Content = content
-                            });
+                            _logger.LogDebug("  Chunk: {Content}", chunkContent);
                         }
+
+                        await onChunk(new StreamContentChunk
+                        {
+                            Type = "content",
+                            Content = chunkContent
+                        });
                     }
                 }
                 catch (Exception ex)
@@ -136,16 +295,32 @@ public class OpenAIService : IOpenAIService
             }
         }
 
+        // Debug日志：记录完整响应内容
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("完整响应内容: {FullContent}", fullContent.ToString());
+            _logger.LogDebug("========================================");
+        }
+
         return fullContent.ToString();
     }
 
-    public async Task<IReadOnlyList<string>> GetModelsAsync(string apiKey, string baseUrl)
+    public async Task<IReadOnlyList<string>> GetModelsAsync(string apiKey, string baseUrl, string? requestFormat = null)
     {
-        // 构建完整的 API URL
-        var apiUrl = BuildApiUrl(baseUrl, "/models");
+        // 获取请求格式化器（默认使用 cline 模式）
+        var formatter = GetFormatter(requestFormat);
+
+        // 构建 API URL
+        var apiUrl = formatter.BuildApiUrl(baseUrl, "/models");
 
         using var httpRequest = new HttpRequestMessage(HttpMethod.Get, apiUrl);
-        httpRequest.Headers.Add("Authorization", $"Bearer {apiKey}");
+
+        // 添加请求头
+        var headers = formatter.GetRequestHeaders(apiKey);
+        foreach (var header in headers)
+        {
+            httpRequest.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
 
         using var response = await _httpClient.SendAsync(httpRequest);
         response.EnsureSuccessStatusCode();
@@ -154,155 +329,20 @@ public class OpenAIService : IOpenAIService
         return result?.Data?.Select(m => m.Id).ToList() ?? new List<string>();
     }
 
-    private OpenAiRequest BuildRequest(
-        IEnumerable<Message> messages,
-        string? systemPrompt,
-        string model,
-        decimal? temperature,
-        int? maxTokens)
-    {
-        var request = new OpenAiRequest
-        {
-            Model = model,
-            Temperature = temperature ?? 0.7m,
-            MaxTokens = maxTokens
-        };
-
-        // 添加系统提示
-        if (!string.IsNullOrWhiteSpace(systemPrompt))
-        {
-            request.Messages.Add(new OpenAiMessage { Role = "system", Content = systemPrompt });
-        }
-
-        // 添加对话消息
-        foreach (var message in messages)
-        {
-            var role = message.Role switch
-            {
-                MessageRole.System => "system",
-                MessageRole.User => "user",
-                MessageRole.Assistant => "assistant",
-                MessageRole.Tool => "tool",
-                _ => "user"
-            };
-
-            request.Messages.Add(new OpenAiMessage
-            {
-                Role = role,
-                Content = message.Content
-            });
-        }
-
-        return request;
-    }
-
     /// <summary>
-    /// 构建 API URL，处理 baseUrl 可能已包含路径的情况
+    /// 获取请求格式化器
     /// </summary>
-    private string BuildApiUrl(string baseUrl, string endpoint)
+    /// <param name="requestFormat">请求格式名称，如果为空则使用默认格式</param>
+    /// <returns>请求格式化器</returns>
+    private IRequestFormatter GetFormatter(string? requestFormat)
     {
-        var trimmedBaseUrl = baseUrl.TrimEnd('/');
-        
-        // 如果 baseUrl 已经包含完整的 endpoint 路径，直接返回
-        if (trimmedBaseUrl.EndsWith(endpoint))
+        if (string.IsNullOrWhiteSpace(requestFormat))
         {
-            return trimmedBaseUrl;
+            return _formatterFactory.GetDefaultFormatter();
         }
-        
-        // 如果 baseUrl 已经包含 /v1，则只添加 endpoint
-        if (trimmedBaseUrl.Contains("/v1"))
-        {
-            return $"{trimmedBaseUrl}{endpoint}";
-        }
-        
-        // 否则添加 /v1 + endpoint
-        return $"{trimmedBaseUrl}/v1{endpoint}";
+
+        return _formatterFactory.GetFormatter(requestFormat);
     }
-}
-
-/// <summary>
-/// OpenAI 请求
-/// </summary>
-public class OpenAiRequest
-{
-    public string Model { get; set; } = string.Empty;
-    public List<OpenAiMessage> Messages { get; set; } = new();
-    public decimal Temperature { get; set; } = 0.7m;
-    public int? MaxTokens { get; set; }
-    public bool Stream { get; set; }
-}
-
-/// <summary>
-/// OpenAI 消息
-/// </summary>
-public class OpenAiMessage
-{
-    public string Role { get; set; } = string.Empty;
-    public string Content { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// OpenAI 响应
-/// </summary>
-public class OpenAiResponse
-{
-    public string Id { get; set; } = string.Empty;
-    public string Object { get; set; } = string.Empty;
-    public int Created { get; set; }
-    public string Model { get; set; } = string.Empty;
-    public List<OpenAiChoice> Choices { get; set; } = new();
-    public OpenAiUsage Usage { get; set; } = new();
-}
-
-/// <summary>
-/// OpenAI 选择
-/// </summary>
-public class OpenAiChoice
-{
-    public int Index { get; set; }
-    public OpenAiMessage Message { get; set; } = new();
-    public string FinishReason { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// OpenAI 使用量
-/// </summary>
-public class OpenAiUsage
-{
-    public int PromptTokens { get; set; }
-    public int CompletionTokens { get; set; }
-    public int TotalTokens { get; set; }
-}
-
-/// <summary>
-/// OpenAI 流式响应块
-/// </summary>
-public class OpenAiStreamChunk
-{
-    public string Id { get; set; } = string.Empty;
-    public string Object { get; set; } = string.Empty;
-    public int Created { get; set; }
-    public string Model { get; set; } = string.Empty;
-    public List<OpenAiStreamChoice> Choices { get; set; } = new();
-}
-
-/// <summary>
-/// OpenAI 流式选择
-/// </summary>
-public class OpenAiStreamChoice
-{
-    public int Index { get; set; }
-    public OpenAiDelta Delta { get; set; } = new();
-    public string? FinishReason { get; set; }
-}
-
-/// <summary>
-/// OpenAI 增量
-/// </summary>
-public class OpenAiDelta
-{
-    public string? Content { get; set; }
-    public string? Role { get; set; }
 }
 
 /// <summary>

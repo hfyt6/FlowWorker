@@ -1,0 +1,281 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using FlowWorker.Core.Interfaces;
+using FlowWorker.Shared.Entities;
+
+namespace FlowWorker.Infrastructure.OpenAI.Formatters;
+
+/// <summary>
+/// Cline 请求格式化器
+/// 实现与 Cline 兼容的 OpenAI API 请求格式
+/// </summary>
+public class ClineRequestFormatter : IRequestFormatter
+{
+    public string Name => "cline";
+    public string Description => "Cline 模式 - 兼容 Cline 扩展的 OpenAI API 请求格式";
+
+    public object BuildRequestBody(
+        string model,
+        IEnumerable<Message> messages,
+        string? systemPrompt = null,
+        decimal? temperature = null,
+        int? maxTokens = null,
+        bool stream = false)
+    {
+        var request = new ClineRequest
+        {
+            Model = model,
+            Temperature = temperature ?? 0,
+            Stream = stream,
+            StreamOptions = stream ? new StreamOptions { IncludeUsage = true } : null
+        };
+
+        // 添加系统提示
+        if (!string.IsNullOrWhiteSpace(systemPrompt))
+        {
+            request.Messages.Add(new ClineMessage { Role = "system", Content = systemPrompt });
+        }
+
+        // 添加对话消息
+        foreach (var message in messages)
+        {
+            var role = message.Role switch
+            {
+                MessageRole.System => "system",
+                MessageRole.User => "user",
+                MessageRole.Assistant => "assistant",
+                MessageRole.Tool => "tool",
+                _ => "user"
+            };
+
+            request.Messages.Add(new ClineMessage
+            {
+                Role = role,
+                Content = message.Content
+            });
+        }
+
+        return request;
+    }
+
+    public Dictionary<string, string> GetRequestHeaders(string apiKey)
+    {
+        return new Dictionary<string, string>
+        {
+            { "Authorization", $"Bearer {apiKey}" },
+            { "Content-Type", "application/json" },
+            { "Accept", "*/*" },
+            { "Accept-Encoding", "gzip, deflate" },
+            { "Accept-Language", "*" },
+            { "Connection", "keep-alive" },
+            { "User-Agent", "node-fetch" }
+        };
+    }
+
+    public string BuildApiUrl(string baseUrl, string endpoint)
+    {
+        var trimmedBaseUrl = baseUrl.TrimEnd('/');
+
+        // 如果 baseUrl 已经包含完整的 endpoint 路径，直接返回
+        if (trimmedBaseUrl.EndsWith(endpoint))
+        {
+            return trimmedBaseUrl;
+        }
+
+        // 如果 baseUrl 已经包含 /v1，则只添加 endpoint
+        if (trimmedBaseUrl.Contains("/v1"))
+        {
+            return $"{trimmedBaseUrl}{endpoint}";
+        }
+
+        // 否则添加 /v1 + endpoint
+        return $"{trimmedBaseUrl}/v1{endpoint}";
+    }
+
+    public string ParseResponse(string responseContent)
+    {
+        try
+        {
+            var response = JsonSerializer.Deserialize<ClineResponse>(responseContent, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+            });
+
+            return response?.Choices?.FirstOrDefault()?.Message?.Content ?? string.Empty;
+        }
+        catch (Exception)
+        {
+            return string.Empty;
+        }
+    }
+
+    public string? ParseStreamChunk(string chunkData)
+    {
+        try
+        {
+            var chunk = JsonSerializer.Deserialize<ClineStreamChunk>(chunkData, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+            });
+
+            if (chunk?.Choices != null && chunk.Choices.Count > 0)
+            {
+                var choice = chunk.Choices[0];
+                if (choice.Delta?.Content != null)
+                {
+                    return choice.Delta.Content;
+                }
+            }
+
+            return null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+}
+
+/// <summary>
+/// Cline 请求
+/// </summary>
+public class ClineRequest
+{
+    [JsonPropertyName("model")]
+    public string Model { get; set; } = string.Empty;
+
+    [JsonPropertyName("messages")]
+    public List<ClineMessage> Messages { get; set; } = new();
+
+    [JsonPropertyName("temperature")]
+    public decimal Temperature { get; set; } = 0;
+
+    [JsonPropertyName("stream")]
+    public bool Stream { get; set; }
+
+    [JsonPropertyName("stream_options")]
+    public StreamOptions? StreamOptions { get; set; }
+}
+
+/// <summary>
+/// Cline 消息
+/// </summary>
+public class ClineMessage
+{
+    [JsonPropertyName("role")]
+    public string Role { get; set; } = string.Empty;
+
+    [JsonPropertyName("content")]
+    public string Content { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// 流式选项
+/// </summary>
+public class StreamOptions
+{
+    [JsonPropertyName("include_usage")]
+    public bool IncludeUsage { get; set; }
+}
+
+/// <summary>
+/// Cline 响应
+/// </summary>
+public class ClineResponse
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("object")]
+    public string Object { get; set; } = string.Empty;
+
+    [JsonPropertyName("created")]
+    public int Created { get; set; }
+
+    [JsonPropertyName("model")]
+    public string Model { get; set; } = string.Empty;
+
+    [JsonPropertyName("choices")]
+    public List<ClineChoice> Choices { get; set; } = new();
+
+    [JsonPropertyName("usage")]
+    public ClineUsage Usage { get; set; } = new();
+}
+
+/// <summary>
+/// Cline 选择
+/// </summary>
+public class ClineChoice
+{
+    [JsonPropertyName("index")]
+    public int Index { get; set; }
+
+    [JsonPropertyName("message")]
+    public ClineMessage Message { get; set; } = new();
+
+    [JsonPropertyName("finish_reason")]
+    public string FinishReason { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Cline 使用量
+/// </summary>
+public class ClineUsage
+{
+    [JsonPropertyName("prompt_tokens")]
+    public int PromptTokens { get; set; }
+
+    [JsonPropertyName("completion_tokens")]
+    public int CompletionTokens { get; set; }
+
+    [JsonPropertyName("total_tokens")]
+    public int TotalTokens { get; set; }
+}
+
+/// <summary>
+/// Cline 流式响应块
+/// </summary>
+public class ClineStreamChunk
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("object")]
+    public string Object { get; set; } = string.Empty;
+
+    [JsonPropertyName("created")]
+    public int Created { get; set; }
+
+    [JsonPropertyName("model")]
+    public string Model { get; set; } = string.Empty;
+
+    [JsonPropertyName("choices")]
+    public List<ClineStreamChoice> Choices { get; set; } = new();
+}
+
+/// <summary>
+/// Cline 流式选择
+/// </summary>
+public class ClineStreamChoice
+{
+    [JsonPropertyName("index")]
+    public int Index { get; set; }
+
+    [JsonPropertyName("delta")]
+    public ClineDelta Delta { get; set; } = new();
+
+    [JsonPropertyName("finish_reason")]
+    public string? FinishReason { get; set; }
+}
+
+/// <summary>
+/// Cline 增量
+/// </summary>
+public class ClineDelta
+{
+    [JsonPropertyName("content")]
+    public string? Content { get; set; }
+
+    [JsonPropertyName("role")]
+    public string? Role { get; set; }
+}

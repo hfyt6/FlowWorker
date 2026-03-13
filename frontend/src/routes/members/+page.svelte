@@ -161,7 +161,8 @@
 					status: selectedMember.status,
 					roleId: formData.roleId || undefined,
 					apiConfigId: formData.apiConfigId || undefined,
-					model: formData.model || undefined
+					model: formData.model || undefined,
+					temperature: formData.temperature
 				})
 			});
 
@@ -214,7 +215,7 @@
 			roleId: member.roleId || '',
 			apiConfigId: '',
 			model: member.model || '',
-			temperature: 0.7
+			temperature: (member as any).temperature ?? 0.7
 		};
 		showEditModal = true;
 	}
@@ -500,6 +501,22 @@
 					<div class="form-group">
 						<label>模型 (可选)</label>
 						<input type="text" bind:value={formData.model} placeholder="例如: gpt-4" />
+					</div>
+					
+					<div class="form-group">
+						<label>温度 (Temperature): {formData.temperature.toFixed(2)}</label>
+						<input 
+							type="range" 
+							bind:value={formData.temperature} 
+							min="0" 
+							max="2" 
+							step="0.1" 
+							class="temperature-slider"
+						/>
+						<div class="temperature-hint">
+							<span>精确 (0)</span>
+							<span>创造性 (2)</span>
+						</div>
 					</div>
 				{/if}
 			</div>

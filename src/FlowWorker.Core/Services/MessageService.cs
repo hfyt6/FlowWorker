@@ -102,7 +102,7 @@ public class MessageService : IMessageService
 
         await _messageRepository.DeleteAsync(message);
     }
-
+    
     public async Task<SendMessageResponse> SendMessageAsync(Guid sessionId, string content)
     {
         var session = await _sessionRepository.GetByIdAsync(sessionId);
@@ -129,7 +129,7 @@ public class MessageService : IMessageService
 
         // 获取会话的历史消息
         var messages = await _messageRepository.GetBySessionIdAsync(sessionId);
-        
+
         // 添加用户消息
         var userMessage = new Message
         {

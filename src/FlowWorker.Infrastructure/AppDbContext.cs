@@ -16,6 +16,8 @@ public class AppDbContext : DbContext
     public DbSet<Member> Members { get; set; } = default!;
     public DbSet<Role> Roles { get; set; } = default!;
     public DbSet<SessionMember> SessionMembers { get; set; } = default!;
+    public DbSet<PromptTemplate> PromptTemplates { get; set; } = default!;
+    public DbSet<RolePromptConfig> RolePromptConfigs { get; set; } = default!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -147,6 +149,49 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Metadata).HasColumnType("json");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
+        });
+
+        // 配置 PromptTemplate
+        modelBuilder.Entity<PromptTemplate>(entity =>
+        {
+            entity.ToTable("PromptTemplates");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Role).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.TemplateType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Content).IsRequired();
+            entity.Property(e => e.Variables).HasColumnType("json");
+            entity.Property(e => e.IsBuiltIn).HasDefaultValue(false);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Version).HasDefaultValue(1);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
+
+            entity.HasIndex(e => new { e.Role, e.Name, e.TemplateType }).IsUnique();
+        });
+
+        // 配置 RolePromptConfig
+        modelBuilder.Entity<RolePromptConfig>(entity =>
+        {
+            entity.ToTable("RolePromptConfigs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.RoleId).IsRequired();
+            entity.Property(e => e.CurrentMode).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.CustomInstructions).HasMaxLength(2000);
+            entity.Property(e => e.MaxIterations).HasDefaultValue(10);
+            entity.Property(e => e.TokenBudget).HasDefaultValue(4000);
+            entity.Property(e => e.ToolWhitelist).HasColumnType("json");
+            entity.Property(e => e.ToolBlacklist).HasColumnType("json");
+            entity.Property(e => e.EnableChainOfThought).HasDefaultValue(true);
+            entity.Property(e => e.EnableTaskProgress).HasDefaultValue(true);
+            entity.Property(e => e.EnableSelfReflection).HasDefaultValue(false);
+            entity.Property(e => e.AdvancedTechniques).HasColumnType("json");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
+
+            entity.HasIndex(e => e.RoleId).IsUnique();
         });
     }
 }
