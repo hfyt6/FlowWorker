@@ -54,9 +54,9 @@ public class Member
     public decimal Temperature { get; set; } = 0.7m;
 
     /// <summary>
-    /// 最大 Token 数（仅AI类型）
+    /// 最大上下文长度（仅AI类型），默认128k
     /// </summary>
-    public int? MaxTokens { get; set; }
+    public long MaxToken { get; set; } = 131072; // 128k = 128 * 1024
 
     /// <summary>
     /// 创建时间

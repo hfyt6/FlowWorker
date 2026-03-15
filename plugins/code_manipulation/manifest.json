@@ -1,0 +1,210 @@
+{
+  "tools": [
+    {
+      "name": "refactor_code",
+      "description": "重构代码，支持重命名、提取方法、内联变量等操作",
+      "parameters": {
+        "code": {
+          "type": "string",
+          "description": "要重构的代码内容",
+          "required": true
+        },
+        "operation": {
+          "type": "string",
+          "description": "重构操作类型（rename, extract_method, inline_variable, move_method, extract_class）",
+          "required": true
+        },
+        "target": {
+          "type": "string",
+          "description": "重构目标（如变量名、方法名、行号范围等）",
+          "required": true
+        },
+        "new_name": {
+          "type": "string",
+          "description": "新名称（用于重命名操作）",
+          "required": false
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "refactored_code": { "type": "string" },
+          "changes": { "type": "array" },
+          "affected_lines": { "type": "array" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "UNSUPPORTED_OPERATION",
+        "REFACTOR_ERROR",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "format_code",
+      "description": "格式化代码，支持多种代码风格",
+      "parameters": {
+        "code": {
+          "type": "string",
+          "description": "要格式化的代码内容",
+          "required": true
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言",
+          "required": true
+        },
+        "style": {
+          "type": "string",
+          "description": "代码风格（default, google, microsoft, custom）",
+          "required": false,
+          "default": "default"
+        },
+        "options": {
+          "type": "object",
+          "description": "格式化选项（缩进、换行等）",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "formatted_code": { "type": "string" },
+          "changes_made": { "type": "boolean" },
+          "format_stats": { "type": "object" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "UNSUPPORTED_LANGUAGE",
+        "FORMAT_ERROR",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "generate_code",
+      "description": "根据模板或描述生成代码",
+      "parameters": {
+        "template": {
+          "type": "string",
+          "description": "代码模板或描述",
+          "required": true
+        },
+        "language": {
+          "type": "string",
+          "description": "目标编程语言",
+          "required": true
+        },
+        "variables": {
+          "type": "object",
+          "description": "模板变量",
+          "required": false
+        },
+        "context": {
+          "type": "string",
+          "description": "上下文信息（如现有代码、需求描述等）",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "generated_code": { "type": "string" },
+          "explanation": { "type": "string" },
+          "suggestions": { "type": "array" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "GENERATION_ERROR",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "transform_code",
+      "description": "转换代码，支持语言转换、语法升级等",
+      "parameters": {
+        "code": {
+          "type": "string",
+          "description": "要转换的代码内容",
+          "required": true
+        },
+        "source_language": {
+          "type": "string",
+          "description": "源编程语言",
+          "required": true
+        },
+        "target_language": {
+          "type": "string",
+          "description": "目标编程语言",
+          "required": true
+        },
+        "transformation_type": {
+          "type": "string",
+          "description": "转换类型（language_convert, syntax_upgrade, framework_migrate）",
+          "required": false,
+          "default": "language_convert"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "transformed_code": { "type": "string" },
+          "conversion_notes": { "type": "array" },
+          "warnings": { "type": "array" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "UNSUPPORTED_CONVERSION",
+        "CONVERSION_ERROR",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "apply_edit",
+      "description": "应用代码编辑操作（SEARCH/REPLACE）",
+      "parameters": {
+        "code": {
+          "type": "string",
+          "description": "原始代码内容",
+          "required": true
+        },
+        "search": {
+          "type": "string",
+          "description": "要搜索的代码块",
+          "required": true
+        },
+        "replace": {
+          "type": "string",
+          "description": "替换后的代码块",
+          "required": true
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "edited_code": { "type": "string" },
+          "success": { "type": "boolean" },
+          "match_count": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "NO_MATCH_FOUND",
+        "MULTIPLE_MATCHES",
+        "EXECUTION_FAILED"
+      ]
+    }
+  ]
+}

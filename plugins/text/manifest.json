@@ -1,0 +1,183 @@
+{
+  "tools": [
+    {
+      "name": "search_text",
+      "description": "文本搜索，支持正则表达式",
+      "parameters": {
+        "text": {
+          "type": "string",
+          "description": "要搜索的文本内容",
+          "required": true
+        },
+        "pattern": {
+          "type": "string",
+          "description": "搜索模式（正则表达式）",
+          "required": true
+        },
+        "case_sensitive": {
+          "type": "boolean",
+          "description": "是否区分大小写",
+          "required": false,
+          "default": true
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "最大返回结果数",
+          "required": false,
+          "default": 100
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": { "type": "integer" },
+                "length": { "type": "integer" },
+                "value": { "type": "string" },
+                "line_number": { "type": "integer" },
+                "column": { "type": "integer" },
+                "groups": { "type": "array" }
+              }
+            }
+          },
+          "total_count": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_PATTERN",
+        "INVALID_PARAMETERS"
+      ]
+    },
+    {
+      "name": "replace_text",
+      "description": "文本替换，支持正则表达式",
+      "parameters": {
+        "text": {
+          "type": "string",
+          "description": "原始文本内容",
+          "required": true
+        },
+        "pattern": {
+          "type": "string",
+          "description": "要替换的模式（正则表达式或普通字符串）",
+          "required": true
+        },
+        "replacement": {
+          "type": "string",
+          "description": "替换后的文本",
+          "required": true
+        },
+        "is_regex": {
+          "type": "boolean",
+          "description": "是否使用正则表达式",
+          "required": false,
+          "default": false
+        },
+        "replace_all": {
+          "type": "boolean",
+          "description": "是否替换所有匹配项",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "result": { "type": "string" },
+          "replacements_count": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_PATTERN",
+        "INVALID_PARAMETERS"
+      ]
+    },
+    {
+      "name": "count_lines",
+      "description": "统计文本行数",
+      "parameters": {
+        "text": {
+          "type": "string",
+          "description": "要统计的文本内容",
+          "required": true
+        },
+        "include_empty": {
+          "type": "boolean",
+          "description": "是否包含空行",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "total_lines": { "type": "integer" },
+          "non_empty_lines": { "type": "integer" },
+          "empty_lines": { "type": "integer" },
+          "character_count": { "type": "integer" },
+          "word_count": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS"
+      ]
+    },
+    {
+      "name": "format_json",
+      "description": "JSON格式化",
+      "parameters": {
+        "json_string": {
+          "type": "string",
+          "description": "要格式化的JSON字符串",
+          "required": true
+        },
+        "indent_size": {
+          "type": "integer",
+          "description": "缩进空格数",
+          "required": false,
+          "default": 2
+        },
+        "sort_keys": {
+          "type": "boolean",
+          "description": "是否对键进行排序",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "formatted": { "type": "string" },
+          "is_valid": { "type": "boolean" }
+        }
+      },
+      "errors": [
+        "INVALID_JSON"
+      ]
+    },
+    {
+      "name": "validate_json",
+      "description": "JSON验证",
+      "parameters": {
+        "json_string": {
+          "type": "string",
+          "description": "要验证的JSON字符串",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "is_valid": { "type": "boolean" },
+          "error": { "type": "string" },
+          "error_position": { "type": "integer" }
+        }
+      },
+      "errors": []
+    }
+  ]
+}

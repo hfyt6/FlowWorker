@@ -1,0 +1,146 @@
+{
+  "tools": [
+    {
+      "name": "read_file",
+      "description": "读取文件内容",
+      "parameters": {
+        "file_path": {
+          "type": "string",
+          "description": "文件路径",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "string",
+        "description": "文件内容字符串"
+      },
+      "errors": [
+        "FILE_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "INVALID_PATH"
+      ]
+    },
+    {
+      "name": "write_file",
+      "description": "写入文件内容",
+      "parameters": {
+        "file_path": {
+          "type": "string",
+          "description": "文件路径",
+          "required": true
+        },
+        "content": {
+          "type": "string",
+          "description": "文件内容",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "bytes_written": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "PERMISSION_DENIED",
+        "INVALID_PATH",
+        "DISK_FULL"
+      ]
+    },
+    {
+      "name": "list_files",
+      "description": "列出目录文件",
+      "parameters": {
+        "directory_path": {
+          "type": "string",
+          "description": "目录路径",
+          "required": true
+        },
+        "recursive": {
+          "type": "boolean",
+          "description": "是否递归列出子目录",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "path": { "type": "string" },
+            "type": { "type": "string", "enum": ["file", "directory"] },
+            "size": { "type": "integer" },
+            "modified_at": { "type": "string" }
+          }
+        }
+      },
+      "errors": [
+        "DIRECTORY_NOT_FOUND",
+        "PERMISSION_DENIED"
+      ]
+    },
+    {
+      "name": "file_exists",
+      "description": "检查文件是否存在",
+      "parameters": {
+        "file_path": {
+          "type": "string",
+          "description": "文件路径",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "boolean"
+      },
+      "errors": [
+        "INVALID_PATH"
+      ]
+    },
+    {
+      "name": "delete_file",
+      "description": "删除文件",
+      "parameters": {
+        "file_path": {
+          "type": "string",
+          "description": "文件路径",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" }
+        }
+      },
+      "errors": [
+        "FILE_NOT_FOUND",
+        "PERMISSION_DENIED"
+      ]
+    },
+    {
+      "name": "create_directory",
+      "description": "创建目录",
+      "parameters": {
+        "directory_path": {
+          "type": "string",
+          "description": "目录路径",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" }
+        }
+      },
+      "errors": [
+        "ALREADY_EXISTS",
+        "PERMISSION_DENIED",
+        "INVALID_PATH"
+      ]
+    }
+  ]
+}

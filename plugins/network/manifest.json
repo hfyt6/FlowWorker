@@ -1,0 +1,247 @@
+{
+  "tools": [
+    {
+      "name": "http_request",
+      "description": "发送HTTP请求",
+      "parameters": {
+        "url": {
+          "type": "string",
+          "description": "请求URL",
+          "required": true
+        },
+        "method": {
+          "type": "string",
+          "description": "HTTP方法",
+          "required": false,
+          "default": "GET",
+          "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
+        },
+        "headers": {
+          "type": "object",
+          "description": "请求头",
+          "required": false
+        },
+        "body": {
+          "type": "string",
+          "description": "请求体",
+          "required": false
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "超时时间（毫秒）",
+          "required": false,
+          "default": 30000
+        },
+        "follow_redirects": {
+          "type": "boolean",
+          "description": "是否跟随重定向",
+          "required": false,
+          "default": true
+        },
+        "verify_ssl": {
+          "type": "boolean",
+          "description": "是否验证SSL证书（仅HTTPS）",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "status_code": { "type": "integer" },
+          "status_text": { "type": "string" },
+          "headers": { "type": "object" },
+          "body": { "type": "string" },
+          "response_time": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_URL",
+        "CONNECTION_FAILED",
+        "TIMEOUT",
+        "SSL_ERROR"
+      ]
+    },
+    {
+      "name": "download_file",
+      "description": "下载文件",
+      "parameters": {
+        "url": {
+          "type": "string",
+          "description": "文件URL",
+          "required": true
+        },
+        "save_path": {
+          "type": "string",
+          "description": "保存路径",
+          "required": true
+        },
+        "headers": {
+          "type": "object",
+          "description": "请求头",
+          "required": false
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "超时时间（毫秒）",
+          "required": false,
+          "default": 60000
+        },
+        "overwrite": {
+          "type": "boolean",
+          "description": "是否覆盖已存在文件",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "file_path": { "type": "string" },
+          "file_size": { "type": "integer" },
+          "download_time": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_URL",
+        "CONNECTION_FAILED",
+        "TIMEOUT",
+        "FILE_EXISTS",
+        "PERMISSION_DENIED"
+      ]
+    },
+    {
+      "name": "ping_host",
+      "description": "Ping主机",
+      "parameters": {
+        "host": {
+          "type": "string",
+          "description": "主机地址（IP或域名）",
+          "required": true
+        },
+        "count": {
+          "type": "integer",
+          "description": "Ping次数",
+          "required": false,
+          "default": 4
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "超时时间（秒）",
+          "required": false,
+          "default": 5
+        },
+        "packet_size": {
+          "type": "integer",
+          "description": "数据包大小（字节）",
+          "required": false,
+          "default": 32
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "host": { "type": "string" },
+          "ip_address": { "type": "string" },
+          "packets_sent": { "type": "integer" },
+          "packets_received": { "type": "integer" },
+          "packet_loss_percent": { "type": "number" },
+          "min_time": { "type": "number" },
+          "max_time": { "type": "number" },
+          "avg_time": { "type": "number" },
+          "details": { "type": "array" }
+        }
+      },
+      "errors": [
+        "INVALID_HOST",
+        "HOST_UNREACHABLE",
+        "PERMISSION_DENIED"
+      ]
+    },
+    {
+      "name": "resolve_dns",
+      "description": "DNS解析",
+      "parameters": {
+        "domain": {
+          "type": "string",
+          "description": "域名",
+          "required": true
+        },
+        "record_type": {
+          "type": "string",
+          "description": "记录类型",
+          "required": false,
+          "default": "A",
+          "enum": ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "SOA", "PTR"]
+        },
+        "dns_server": {
+          "type": "string",
+          "description": "指定DNS服务器",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "domain": { "type": "string" },
+          "record_type": { "type": "string" },
+          "records": { "type": "array" },
+          "ttl": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_DOMAIN",
+        "RESOLUTION_FAILED",
+        "TIMEOUT"
+      ]
+    },
+    {
+      "name": "check_port",
+      "description": "检查端口状态",
+      "parameters": {
+        "host": {
+          "type": "string",
+          "description": "主机地址",
+          "required": true
+        },
+        "port": {
+          "type": "integer",
+          "description": "端口号",
+          "required": true
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "超时时间（毫秒）",
+          "required": false,
+          "default": 5000
+        },
+        "protocol": {
+          "type": "string",
+          "description": "协议类型",
+          "required": false,
+          "default": "tcp",
+          "enum": ["tcp", "udp"]
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "host": { "type": "string" },
+          "port": { "type": "integer" },
+          "protocol": { "type": "string" },
+          "is_open": { "type": "boolean" },
+          "response_time": { "type": "integer" },
+          "service_name": { "type": "string" }
+        }
+      },
+      "errors": [
+        "INVALID_HOST",
+        "INVALID_PORT",
+        "CONNECTION_FAILED",
+        "TIMEOUT"
+      ]
+    }
+  ]
+}

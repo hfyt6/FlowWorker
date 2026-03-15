@@ -1,0 +1,302 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "parse_code_request": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要解析的代码内容"
+        },
+        "language": {
+          "type": "string",
+          "enum": ["csharp", "javascript", "typescript", "python", "java", "cpp", "c", "go", "rust", "ruby", "php", "swift", "kotlin", "scala", "r", "matlab", "shell", "powershell", "sql", "html", "css", "xml", "json", "yaml"],
+          "description": "编程语言"
+        }
+      },
+      "required": ["code", "language"]
+    },
+    "parse_code_response": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string",
+          "description": "编程语言"
+        },
+        "functions": {
+          "type": "array",
+          "description": "函数列表",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "line_start": { "type": "integer" },
+              "line_end": { "type": "integer" },
+              "parameters": { "type": "array" },
+              "return_type": { "type": "string" },
+              "modifiers": { "type": "array" }
+            }
+          }
+        },
+        "classes": {
+          "type": "array",
+          "description": "类列表",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "line_start": { "type": "integer" },
+              "line_end": { "type": "integer" },
+              "base_class": { "type": "string" },
+              "interfaces": { "type": "array" },
+              "methods": { "type": "array" },
+              "properties": { "type": "array" }
+            }
+          }
+        },
+        "imports": {
+          "type": "array",
+          "description": "导入/引用列表",
+          "items": { "type": "string" }
+        },
+        "variables": {
+          "type": "array",
+          "description": "变量列表",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "type": "string" },
+              "line": { "type": "integer" }
+            }
+          }
+        },
+        "line_count": {
+          "type": "integer",
+          "description": "代码总行数"
+        }
+      }
+    },
+    "find_function_request": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要搜索的代码内容"
+        },
+        "function_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "函数名称（支持正则表达式）"
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言"
+        }
+      },
+      "required": ["code", "function_name"]
+    },
+    "find_function_response": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean",
+          "description": "是否找到函数"
+        },
+        "functions": {
+          "type": "array",
+          "description": "找到的函数列表",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "line_start": { "type": "integer" },
+              "line_end": { "type": "integer" },
+              "signature": { "type": "string" },
+              "body": { "type": "string" }
+            }
+          }
+        },
+        "count": {
+          "type": "integer",
+          "description": "找到的函数数量"
+        }
+      }
+    },
+    "find_class_request": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要搜索的代码内容"
+        },
+        "class_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "类名称（支持正则表达式）"
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言"
+        }
+      },
+      "required": ["code", "class_name"]
+    },
+    "find_class_response": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean",
+          "description": "是否找到类"
+        },
+        "classes": {
+          "type": "array",
+          "description": "找到的类列表",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "line_start": { "type": "integer" },
+              "line_end": { "type": "integer" },
+              "definition": { "type": "string" },
+              "body": { "type": "string" }
+            }
+          }
+        },
+        "count": {
+          "type": "integer",
+          "description": "找到的类数量"
+        }
+      }
+    },
+    "get_dependencies_request": {
+      "type": "object",
+      "properties": {
+        "project_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "项目路径"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["all", "nuget", "npm", "pip", "maven", "gradle", "cargo", "composer", "gem"],
+          "default": "all",
+          "description": "依赖类型"
+        }
+      },
+      "required": ["project_path"]
+    },
+    "get_dependencies_response": {
+      "type": "object",
+      "properties": {
+        "project_path": {
+          "type": "string",
+          "description": "项目路径"
+        },
+        "project_type": {
+          "type": "string",
+          "description": "检测到的项目类型"
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "生产依赖列表",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "version": { "type": "string" },
+              "type": { "type": "string" }
+            }
+          }
+        },
+        "dev_dependencies": {
+          "type": "array",
+          "description": "开发依赖列表",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "version": { "type": "string" },
+              "type": { "type": "string" }
+            }
+          }
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "依赖总数"
+        }
+      }
+    },
+    "analyze_complexity_request": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要分析的代码内容"
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言"
+        },
+        "metrics": {
+          "type": "array",
+          "description": "要计算的复杂度指标",
+          "items": {
+            "type": "string",
+            "enum": ["cyclomatic", "cognitive", "lines", "nesting"]
+          }
+        }
+      },
+      "required": ["code"]
+    },
+    "analyze_complexity_response": {
+      "type": "object",
+      "properties": {
+        "overall_score": {
+          "type": "number",
+          "description": "整体复杂度评分（0-100，越高越好）"
+        },
+        "cyclomatic_complexity": {
+          "type": "integer",
+          "description": "圈复杂度"
+        },
+        "cognitive_complexity": {
+          "type": "integer",
+          "description": "认知复杂度"
+        },
+        "lines_of_code": {
+          "type": "integer",
+          "description": "代码行数"
+        },
+        "max_nesting_depth": {
+          "type": "integer",
+          "description": "最大嵌套深度"
+        },
+        "function_complexities": {
+          "type": "array",
+          "description": "各函数复杂度",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "line_start": { "type": "integer" },
+              "cyclomatic": { "type": "integer" },
+              "cognitive": { "type": "integer" },
+              "lines": { "type": "integer" },
+              "nesting_depth": { "type": "integer" }
+            }
+          }
+        },
+        "recommendations": {
+          "type": "array",
+          "description": "优化建议",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

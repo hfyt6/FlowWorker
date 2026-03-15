@@ -1,0 +1,348 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "execute_command_request": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要执行的命令"
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "命令参数列表"
+        },
+        "working_directory": {
+          "type": "string",
+          "description": "工作目录"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 30000,
+          "description": "超时时间（毫秒）"
+        },
+        "environment": {
+          "type": "object",
+          "description": "环境变量"
+        },
+        "skip_security_check": {
+          "type": "boolean",
+          "description": "是否跳过安全检查（谨慎使用）",
+          "default": false
+        },
+        "require_confirmation": {
+          "type": "boolean",
+          "description": "用户是否已确认执行此命令（当命令存在安全风险时需要设置为true）",
+          "default": false
+        }
+      },
+      "required": ["command"]
+    },
+    "execute_command_response": {
+      "type": "object",
+      "properties": {
+        "exit_code": {
+          "type": "integer",
+          "description": "退出代码"
+        },
+        "stdout": {
+          "type": "string",
+          "description": "标准输出"
+        },
+        "stderr": {
+          "type": "string",
+          "description": "标准错误"
+        },
+        "execution_time": {
+          "type": "integer",
+          "description": "执行时间（毫秒）"
+        },
+        "security_info": {
+          "$ref": "#/definitions/security_info",
+          "description": "安全检查信息"
+        }
+      }
+    },
+    "run_process_request": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要运行的命令"
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "命令参数列表"
+        },
+        "working_directory": {
+          "type": "string",
+          "description": "工作目录"
+        },
+        "environment": {
+          "type": "object",
+          "description": "环境变量"
+        },
+        "redirect_stdout": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否重定向标准输出"
+        },
+        "redirect_stderr": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否重定向标准错误"
+        },
+        "skip_security_check": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否跳过安全检查（谨慎使用）"
+        }
+      },
+      "required": ["command"]
+    },
+    "run_process_response": {
+      "type": "object",
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "description": "进程ID"
+        },
+        "process_name": {
+          "type": "string",
+          "description": "进程名称"
+        },
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "启动时间"
+        },
+        "security_info": {
+          "$ref": "#/definitions/security_info",
+          "description": "安全检查信息"
+        }
+      }
+    },
+    "kill_process_request": {
+      "type": "object",
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "进程ID"
+        },
+        "force": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否强制终止"
+        }
+      },
+      "required": ["pid"]
+    },
+    "kill_process_response": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "是否成功"
+        },
+        "message": {
+          "type": "string",
+          "description": "结果消息"
+        }
+      }
+    },
+    "list_processes_request": {
+      "type": "object",
+      "properties": {
+        "filter": {
+          "type": "string",
+          "description": "过滤条件（进程名或命令行）"
+        },
+        "include_system": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否包含系统进程"
+        }
+      }
+    },
+    "list_processes_response": {
+      "type": "object",
+      "properties": {
+        "processes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/process_summary"
+          }
+        },
+        "total_count": {
+          "type": "integer",
+          "description": "进程总数"
+        }
+      }
+    },
+    "process_summary": {
+      "type": "object",
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "description": "进程ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "进程名称"
+        },
+        "command_line": {
+          "type": "string",
+          "description": "命令行"
+        },
+        "cpu_percent": {
+          "type": "number",
+          "description": "CPU使用率（%）"
+        },
+        "memory_mb": {
+          "type": "number",
+          "description": "内存使用（MB）"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["running", "sleeping", "stopped", "zombie", "unknown"],
+          "description": "进程状态"
+        },
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "启动时间"
+        }
+      }
+    },
+    "get_process_info_request": {
+      "type": "object",
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "进程ID"
+        }
+      },
+      "required": ["pid"]
+    },
+    "get_process_info_response": {
+      "type": "object",
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "description": "进程ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "进程名称"
+        },
+        "command_line": {
+          "type": "string",
+          "description": "命令行"
+        },
+        "executable_path": {
+          "type": "string",
+          "description": "可执行文件路径"
+        },
+        "cpu_percent": {
+          "type": "number",
+          "description": "CPU使用率（%）"
+        },
+        "memory_mb": {
+          "type": "number",
+          "description": "内存使用（MB）"
+        },
+        "memory_percent": {
+          "type": "number",
+          "description": "内存使用率（%）"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["running", "sleeping", "stopped", "zombie", "unknown"],
+          "description": "进程状态"
+        },
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "启动时间"
+        },
+        "parent_pid": {
+          "type": "integer",
+          "description": "父进程ID"
+        },
+        "threads": {
+          "type": "integer",
+          "description": "线程数"
+        },
+        "user": {
+          "type": "string",
+          "description": "运行用户"
+        }
+      }
+    },
+    "security_info": {
+      "type": "object",
+      "properties": {
+        "risk_level": {
+          "type": "string",
+          "enum": ["safe", "warning", "dangerous", "blocked"],
+          "description": "风险等级"
+        },
+        "message": {
+          "type": "string",
+          "description": "安全检查消息"
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "警告信息列表"
+        }
+      }
+    },
+    "validate_command_request": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要验证的命令"
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "命令参数列表"
+        }
+      },
+      "required": ["command"]
+    },
+    "validate_command_response": {
+      "type": "object",
+      "properties": {
+        "is_allowed": {
+          "type": "boolean",
+          "description": "是否允许执行"
+        },
+        "risk_level": {
+          "type": "string",
+          "enum": ["safe", "warning", "dangerous", "blocked"],
+          "description": "风险等级"
+        },
+        "message": {
+          "type": "string",
+          "description": "验证结果消息"
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "警告信息列表"
+        }
+      }
+    }
+  }
+}

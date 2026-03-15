@@ -1,0 +1,12 @@
+{
+  "name": "version_control",
+  "version": "1.0.0",
+  "description": "版本控制工具集，提供Git状态查询、代码差异比较、提交历史查看、分支管理和代码提交功能",
+  "author": "FlowWorker",
+  "category": "development",
+  "level": 2,
+  "tags": ["git", "version-control", "diff", "commit", "branch", "log", "status"],
+  "dependencies": [],
+  "entry_point": "handler.cs",
+  "enabled": true
+}

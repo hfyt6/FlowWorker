@@ -1,0 +1,232 @@
+{
+  "tools": [
+    {
+      "name": "git_status",
+      "description": "获取Git仓库的当前状态，包括已修改、已暂存、未跟踪的文件",
+      "parameters": {
+        "repository_path": {
+          "type": "string",
+          "description": "Git仓库路径",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "branch": { "type": "string" },
+          "is_clean": { "type": "boolean" },
+          "modified": { "type": "array" },
+          "staged": { "type": "array" },
+          "untracked": { "type": "array" },
+          "deleted": { "type": "array" },
+          "renamed": { "type": "array" },
+          "ahead": { "type": "integer" },
+          "behind": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "NOT_A_GIT_REPOSITORY",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "git_diff",
+      "description": "获取代码差异，支持工作区与暂存区、指定提交之间的比较",
+      "parameters": {
+        "repository_path": {
+          "type": "string",
+          "description": "Git仓库路径",
+          "required": true
+        },
+        "commit1": {
+          "type": "string",
+          "description": "第一个提交（可选，默认为工作区）",
+          "required": false
+        },
+        "commit2": {
+          "type": "string",
+          "description": "第二个提交（可选，默认为暂存区）",
+          "required": false
+        },
+        "file_path": {
+          "type": "string",
+          "description": "指定文件路径（可选）",
+          "required": false
+        },
+        "cached": {
+          "type": "boolean",
+          "description": "是否比较暂存区与HEAD",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "diff": { "type": "string" },
+          "files_changed": { "type": "array" },
+          "insertions": { "type": "integer" },
+          "deletions": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "NOT_A_GIT_REPOSITORY",
+        "COMMIT_NOT_FOUND",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "git_log",
+      "description": "获取提交历史记录",
+      "parameters": {
+        "repository_path": {
+          "type": "string",
+          "description": "Git仓库路径",
+          "required": true
+        },
+        "limit": {
+          "type": "integer",
+          "description": "返回的提交数量限制",
+          "required": false,
+          "default": 20
+        },
+        "branch": {
+          "type": "string",
+          "description": "指定分支（可选）",
+          "required": false
+        },
+        "author": {
+          "type": "string",
+          "description": "按作者过滤（可选）",
+          "required": false
+        },
+        "since": {
+          "type": "string",
+          "description": "起始日期，格式：YYYY-MM-DD（可选）",
+          "required": false
+        },
+        "until": {
+          "type": "string",
+          "description": "结束日期，格式：YYYY-MM-DD（可选）",
+          "required": false
+        },
+        "file_path": {
+          "type": "string",
+          "description": "指定文件路径（可选）",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "commits": { "type": "array" },
+          "total_count": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "NOT_A_GIT_REPOSITORY",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "git_branch",
+      "description": "分支操作，包括列出分支、创建分支、切换分支、删除分支",
+      "parameters": {
+        "repository_path": {
+          "type": "string",
+          "description": "Git仓库路径",
+          "required": true
+        },
+        "action": {
+          "type": "string",
+          "description": "操作类型：list, create, switch, delete",
+          "required": true,
+          "enum": ["list", "create", "switch", "delete"]
+        },
+        "branch_name": {
+          "type": "string",
+          "description": "分支名称（create/switch/delete时需要）",
+          "required": false
+        },
+        "base_branch": {
+          "type": "string",
+          "description": "基于哪个分支创建（create时可选）",
+          "required": false
+        },
+        "force": {
+          "type": "boolean",
+          "description": "是否强制删除（delete时可选）",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "current_branch": { "type": "string" },
+          "branches": { "type": "array" },
+          "success": { "type": "boolean" },
+          "message": { "type": "string" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "NOT_A_GIT_REPOSITORY",
+        "BRANCH_NOT_FOUND",
+        "BRANCH_ALREADY_EXISTS",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "git_commit",
+      "description": "提交代码到仓库",
+      "parameters": {
+        "repository_path": {
+          "type": "string",
+          "description": "Git仓库路径",
+          "required": true
+        },
+        "message": {
+          "type": "string",
+          "description": "提交信息",
+          "required": true
+        },
+        "files": {
+          "type": "array",
+          "description": "要提交的文件列表（可选，默认为所有暂存文件）",
+          "required": false
+        },
+        "all": {
+          "type": "boolean",
+          "description": "是否自动暂存所有修改的文件",
+          "required": false,
+          "default": false
+        },
+        "amend": {
+          "type": "boolean",
+          "description": "是否修改上一次提交",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "commit_hash": { "type": "string" },
+          "message": { "type": "string" },
+          "files_committed": { "type": "array" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "NOT_A_GIT_REPOSITORY",
+        "NOTHING_TO_COMMIT",
+        "EXECUTION_FAILED"
+      ]
+    }
+  ]
+}

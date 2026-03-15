@@ -572,7 +572,7 @@ public class MessageService : IMessageService
                     },
                     systemPrompt,
                     aiMember.Temperature,
-                    aiMember.MaxTokens ?? session.MaxTokens);
+                    (int?)aiMember.MaxToken ?? session.MaxTokens);
 
                 var responseContent = fullContent.ToString();
 

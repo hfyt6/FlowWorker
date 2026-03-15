@@ -1,0 +1,207 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "read_file_request": {
+      "type": "object",
+      "properties": {
+        "file_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要读取的文件路径"
+        }
+      },
+      "required": ["file_path"]
+    },
+    "read_file_response": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "文件内容"
+        },
+        "encoding": {
+          "type": "string",
+          "default": "utf-8"
+        },
+        "size": {
+          "type": "integer",
+          "description": "文件大小（字节）"
+        }
+      }
+    },
+    "write_file_request": {
+      "type": "object",
+      "properties": {
+        "file_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要写入的文件路径"
+        },
+        "content": {
+          "type": "string",
+          "description": "要写入的文件内容"
+        },
+        "encoding": {
+          "type": "string",
+          "default": "utf-8"
+        },
+        "append": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否追加模式"
+        }
+      },
+      "required": ["file_path", "content"]
+    },
+    "write_file_response": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "bytes_written": {
+          "type": "integer"
+        },
+        "file_path": {
+          "type": "string"
+        }
+      }
+    },
+    "list_files_request": {
+      "type": "object",
+      "properties": {
+        "directory_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要列出的目录路径"
+        },
+        "recursive": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否递归列出子目录"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "文件匹配模式（如 *.txt）"
+        }
+      },
+      "required": ["directory_path"]
+    },
+    "list_files_response": {
+      "type": "object",
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/file_info"
+          }
+        },
+        "total_count": {
+          "type": "integer"
+        }
+      }
+    },
+    "file_info": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["file", "directory"]
+        },
+        "size": {
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modified_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "file_exists_request": {
+      "type": "object",
+      "properties": {
+        "file_path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["file_path"]
+    },
+    "file_exists_response": {
+      "type": "object",
+      "properties": {
+        "exists": {
+          "type": "boolean"
+        },
+        "is_file": {
+          "type": "boolean"
+        },
+        "is_directory": {
+          "type": "boolean"
+        }
+      }
+    },
+    "delete_file_request": {
+      "type": "object",
+      "properties": {
+        "file_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recursive": {
+          "type": "boolean",
+          "default": false,
+          "description": "删除目录时是否递归删除"
+        }
+      },
+      "required": ["file_path"]
+    },
+    "delete_file_response": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "deleted_items": {
+          "type": "integer"
+        }
+      }
+    },
+    "create_directory_request": {
+      "type": "object",
+      "properties": {
+        "directory_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recursive": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否递归创建父目录"
+        }
+      },
+      "required": ["directory_path"]
+    },
+    "create_directory_response": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "created_path": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

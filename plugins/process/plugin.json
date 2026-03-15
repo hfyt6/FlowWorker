@@ -1,0 +1,41 @@
+{
+  "name": "process",
+  "version": "1.1.0",
+  "description": "进程管理工具集，提供系统命令执行、进程管理和监控功能，支持Windows、Linux和macOS系统，包含命令安全审查机制",
+  "author": "FlowWorker",
+  "category": "system",
+  "level": 3,
+  "tags": ["process", "command", "execution", "system", "windows", "linux", "macos", "security"],
+  "dependencies": [],
+  "entry_point": "handler.cs",
+  "enabled": true,
+  "security": {
+    "enabled": true,
+    "description": "命令执行安全审查机制，防止执行危险命令",
+    "features": [
+      "危险命令拦截",
+      "高风险命令警告",
+      "命令注入检测",
+      "路径遍历检测",
+      "多命令执行检测"
+    ]
+  },
+  "platforms": {
+    "windows": {
+      "supported": true,
+      "shell": "cmd.exe",
+      "notes": "使用PowerShell获取详细进程信息"
+    },
+    "linux": {
+      "supported": true,
+      "shell": "/bin/bash",
+      "notes": "使用/proc文件系统和ps命令"
+    },
+    "macos": {
+      "supported": true,
+      "shell": "/bin/zsh",
+      "fallback_shell": "/bin/bash",
+      "notes": "使用ps命令获取进程信息"
+    }
+  }
+}

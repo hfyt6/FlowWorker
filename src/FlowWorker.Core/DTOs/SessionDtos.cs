@@ -17,6 +17,11 @@ public class CreateSessionRequest
     /// 成员ID（AI成员）
     /// </summary>
     public Guid MemberId { get; set; }
+
+    /// <summary>
+    /// 会话工作目录路径（可选，默认为系统临时目录）
+    /// </summary>
+    public string? WorkingDirectory { get; set; }
 }
 
 /// <summary>
@@ -43,6 +48,11 @@ public class CreateGroupSessionRequest
     /// 系统提示词（可选）
     /// </summary>
     public string? SystemPrompt { get; set; }
+
+    /// <summary>
+    /// 会话工作目录路径（可选，默认为系统临时目录）
+    /// </summary>
+    public string? WorkingDirectory { get; set; }
 }
 
 /// <summary>
@@ -178,8 +188,14 @@ public class SessionDetailDto
     public int? MaxTokens { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    /// <summary>
+    /// 会话工作目录路径
+    /// </summary>
+    public string WorkingDirectory { get; set; } = string.Empty;
+
     public ICollection<Message> Messages { get; set; } = new List<Message>();
-    
+
     /// <summary>
     /// 参与者列表
     /// </summary>

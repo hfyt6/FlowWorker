@@ -1,0 +1,136 @@
+{
+  "tools": [
+    {
+      "name": "calculate",
+      "description": "数学计算，支持基本算术运算",
+      "parameters": {
+        "expression": {
+          "type": "string",
+          "description": "数学表达式，支持 +, -, *, /, %, ^ 等运算符",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "expression": { "type": "string" },
+          "result": { "type": "number" },
+          "result_type": { "type": "string" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "SYNTAX_ERROR",
+        "DIVIDE_BY_ZERO",
+        "OVERFLOW",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "convert_unit",
+      "description": "单位转换，支持长度、重量、温度、数据存储和时间单位",
+      "parameters": {
+        "value": {
+          "type": "number",
+          "description": "要转换的数值",
+          "required": true
+        },
+        "from_unit": {
+          "type": "string",
+          "description": "原单位（如: m, kg, c, gb, hour）",
+          "required": true
+        },
+        "to_unit": {
+          "type": "string",
+          "description": "目标单位（如: ft, lb, f, mb, minute）",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "original_value": { "type": "number" },
+          "original_unit": { "type": "string" },
+          "converted_value": { "type": "number" },
+          "target_unit": { "type": "string" },
+          "conversion_rate": { "type": "number" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "UNSUPPORTED_CONVERSION",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "generate_uuid",
+      "description": "生成UUID（通用唯一识别码）",
+      "parameters": {
+        "count": {
+          "type": "integer",
+          "description": "生成数量（1-100，默认1）",
+          "required": false,
+          "default": 1
+        },
+        "format": {
+          "type": "string",
+          "description": "UUID格式（standard, nodashes, uppercase, braces, parentheses, hex）",
+          "required": false,
+          "default": "standard"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "uuids": { 
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
+          "count": { "type": "integer" },
+          "format": { "type": "string" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "get_timestamp",
+      "description": "获取当前时间戳",
+      "parameters": {
+        "format": {
+          "type": "string",
+          "description": "时间戳格式（unix, unix_milliseconds, iso, rfc, datetime, date, time）",
+          "required": false,
+          "default": "unix"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "时区（utc, local）",
+          "required": false,
+          "default": "utc"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "timestamp": { 
+            "oneOf": [
+              { "type": "integer" },
+              { "type": "string" }
+            ]
+          },
+          "format": { "type": "string" },
+          "timezone": { "type": "string" },
+          "datetime": { "type": "string" }
+        }
+      },
+      "errors": [
+        "EXECUTION_FAILED"
+      ]
+    }
+  ]
+}

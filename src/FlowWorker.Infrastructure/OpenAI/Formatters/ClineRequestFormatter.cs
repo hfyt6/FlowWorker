@@ -33,7 +33,11 @@ public class ClineRequestFormatter : IRequestFormatter
         // 添加系统提示
         if (!string.IsNullOrWhiteSpace(systemPrompt))
         {
-            request.Messages.Add(new ClineMessage { Role = "system", Content = systemPrompt });
+            request.Messages.Add(new ClineMessage 
+            { 
+                Role = "system", 
+                Content = systemPrompt 
+            });
         }
 
         // 添加对话消息
@@ -48,11 +52,30 @@ public class ClineRequestFormatter : IRequestFormatter
                 _ => "user"
             };
 
-            request.Messages.Add(new ClineMessage
+            // 用户消息使用JSON数组格式（多模态格式）
+            if (message.Role == MessageRole.User)
             {
-                Role = role,
-                Content = message.Content
-            });
+                request.Messages.Add(new ClineMessage
+                {
+                    Role = role,
+                    Content = new List<ClineContentItem>
+                    {
+                        new ClineContentItem
+                        {
+                            Type = "text",
+                            Text = message.Content
+                        }
+                    }
+                });
+            }
+            else
+            {
+                request.Messages.Add(new ClineMessage
+                {
+                    Role = role,
+                    Content = message.Content
+                });
+            }
         }
 
         return request;
@@ -101,7 +124,32 @@ public class ClineRequestFormatter : IRequestFormatter
                 PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
             });
 
-            return response?.Choices?.FirstOrDefault()?.Message?.Content ?? string.Empty;
+            var content = response?.Choices?.FirstOrDefault()?.Message?.Content;
+            if (content == null)
+                return string.Empty;
+            
+            // Content 可能是字符串或数组，需要处理
+            if (content is string strContent)
+                return strContent;
+            
+            // 如果是数组，尝试解析为内容项列表
+            if (content is JsonElement jsonElement)
+            {
+                if (jsonElement.ValueKind == JsonValueKind.String)
+                    return jsonElement.GetString() ?? string.Empty;
+                
+                if (jsonElement.ValueKind == JsonValueKind.Array)
+                {
+                    var items = JsonSerializer.Deserialize<List<ClineContentItem>>(jsonElement.GetRawText());
+                    if (items != null)
+                    {
+                        // 拼接所有文本内容
+                        return string.Join("", items.Where(i => i.Type == "text" && i.Text != null).Select(i => i.Text));
+                    }
+                }
+            }
+            
+            return content.ToString() ?? string.Empty;
         }
         catch (Exception)
         {
@@ -158,7 +206,31 @@ public class ClineRequest
 }
 
 /// <summary>
-/// Cline 消息
+/// Cline 消息内容项（用于多模态内容）
+/// </summary>
+public class ClineContentItem
+{
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "text";
+
+    [JsonPropertyName("text")]
+    public string? Text { get; set; }
+
+    [JsonPropertyName("image_url")]
+    public ClineImageUrl? ImageUrl { get; set; }
+}
+
+/// <summary>
+/// Cline 图片URL
+/// </summary>
+public class ClineImageUrl
+{
+    [JsonPropertyName("url")]
+    public string Url { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Cline 消息 - 支持字符串或内容数组
 /// </summary>
 public class ClineMessage
 {
@@ -166,7 +238,7 @@ public class ClineMessage
     public string Role { get; set; } = string.Empty;
 
     [JsonPropertyName("content")]
-    public string Content { get; set; } = string.Empty;
+    public object Content { get; set; } = string.Empty;
 }
 
 /// <summary>

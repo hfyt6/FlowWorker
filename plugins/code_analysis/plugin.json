@@ -1,0 +1,12 @@
+{
+  "name": "code_analysis",
+  "version": "1.0.0",
+  "description": "代码分析工具集，提供代码解析、函数/类查找、依赖分析和复杂度分析功能",
+  "author": "FlowWorker",
+  "category": "development",
+  "level": 2,
+  "tags": ["code", "analysis", "parse", "function", "class", "dependencies", "complexity"],
+  "dependencies": [],
+  "entry_point": "handler.cs",
+  "enabled": true
+}

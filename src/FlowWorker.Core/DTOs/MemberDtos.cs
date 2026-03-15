@@ -21,7 +21,7 @@ public class MemberListItemDto
     public string? ApiConfigName { get; set; }
     public string? Model { get; set; }
     public decimal Temperature { get; set; } = 0.7m;
-    public int? MaxTokens { get; set; }
+    public long MaxToken { get; set; } = 131072; // 128k = 128 * 1024
 }
 
 /// <summary>
@@ -44,7 +44,7 @@ public class MemberDetailDto
     public string? ApiConfigName { get; set; }
     public string? Model { get; set; }
     public decimal Temperature { get; set; } = 0.7m;
-    public int? MaxTokens { get; set; }
+    public long MaxToken { get; set; } = 131072; // 128k = 128 * 1024
 }
 
 /// <summary>
@@ -58,7 +58,7 @@ public class CreateAIMemberRequest
     public Guid ApiConfigId { get; set; }
     public string? Model { get; set; }
     public decimal Temperature { get; set; } = 0.7m;
-    public int? MaxTokens { get; set; }
+    public long MaxToken { get; set; } = 131072; // 128k = 128 * 1024
 }
 
 /// <summary>
@@ -75,5 +75,5 @@ public class UpdateMemberRequest
     public Guid? ApiConfigId { get; set; }
     public string? Model { get; set; }
     public decimal? Temperature { get; set; }
-    public int? MaxTokens { get; set; }
+    public long? MaxToken { get; set; }
 }

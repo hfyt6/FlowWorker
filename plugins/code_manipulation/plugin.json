@@ -1,0 +1,12 @@
+{
+  "name": "code_manipulation",
+  "version": "1.0.0",
+  "description": "代码操作工具集，提供代码重构、格式化、生成和转换功能",
+  "author": "FlowWorker",
+  "category": "development",
+  "level": 2,
+  "tags": ["code", "manipulation", "refactor", "format", "generate", "transform"],
+  "dependencies": [],
+  "entry_point": "handler.cs",
+  "enabled": true
+}

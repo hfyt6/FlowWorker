@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using FlowWorker.Core.Interfaces;
+using FlowWorker.Core.Services;
 using FlowWorker.Shared.DTOs;
 using FlowWorker.Shared.Entities;
 using Microsoft.Extensions.Logging;
@@ -139,7 +140,21 @@ public class OpenAIService : IOpenAIService
         }
 
         // 使用格式化器解析响应
-        return formatter.ParseResponse(responseContent);
+        var parsedResponse = formatter.ParseResponse(responseContent);
+
+        // 解析工具调用
+        if (ToolCallParser.ContainsToolCalls(parsedResponse))
+        {
+            var toolCalls = ToolCallParser.ParseToolCalls(parsedResponse);
+            foreach (var toolCall in toolCalls)
+            {
+                _logger.LogInformation("检测到工具调用: {ToolName}, 参数: {Parameters}",
+                    toolCall.ToolName,
+                    string.Join(", ", toolCall.Parameters.Select(p => $"{p.Key}={p.Value}")));
+            }
+        }
+
+        return parsedResponse;
     }
 
     public async Task<string> SendMessageStreamAsync(
@@ -302,7 +317,32 @@ public class OpenAIService : IOpenAIService
             _logger.LogDebug("========================================");
         }
 
-        return fullContent.ToString();
+        // 解析工具调用
+        var completeContent = fullContent.ToString();
+        if (ToolCallParser.ContainsToolCalls(completeContent))
+        {
+            var toolCalls = ToolCallParser.ParseToolCalls(completeContent);
+            foreach (var toolCall in toolCalls)
+            {
+                _logger.LogInformation("检测到工具调用: {ToolName}, 参数: {Parameters}",
+                    toolCall.ToolName,
+                    string.Join(", ", toolCall.Parameters.Select(p => $"{p.Key}={p.Value}")));
+
+                // 发送工具调用信息
+                await onChunk(new StreamContentChunk
+                {
+                    Type = "tool_call",
+                    Content = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        tool_name = toolCall.ToolName,
+                        parameters = toolCall.Parameters,
+                        raw_content = toolCall.RawContent
+                    })
+                });
+            }
+        }
+
+        return completeContent;
     }
 
     public async Task<IReadOnlyList<string>> GetModelsAsync(string apiKey, string baseUrl, string? requestFormat = null)

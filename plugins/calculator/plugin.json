@@ -1,0 +1,12 @@
+{
+  "name": "calculator",
+  "version": "1.0.0",
+  "description": "基础计算工具集，提供数学计算、单位转换、UUID生成和时间戳获取功能",
+  "author": "FlowWorker",
+  "category": "core",
+  "level": 1,
+  "tags": ["calculator", "math", "unit", "uuid", "timestamp", "calculation"],
+  "dependencies": [],
+  "entry_point": "handler.cs",
+  "enabled": true
+}

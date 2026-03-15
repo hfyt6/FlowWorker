@@ -1,0 +1,12 @@
+{
+  "name": "filesystem",
+  "version": "1.0.0",
+  "description": "文件系统操作工具集，提供文件和目录的基本操作功能",
+  "author": "FlowWorker",
+  "category": "core",
+  "level": 1,
+  "tags": ["filesystem", "file", "directory", "io"],
+  "dependencies": [],
+  "entry_point": "handler.cs",
+  "enabled": true
+}

@@ -60,6 +60,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Avatar).HasMaxLength(500);
             entity.Property(e => e.Model).HasMaxLength(100);
             entity.Property(e => e.Temperature).HasDefaultValue(0.7m);
+            entity.Property(e => e.MaxToken).HasDefaultValue(131072L); // 128k = 128 * 1024
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
             
@@ -83,10 +84,11 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Model).IsRequired().HasMaxLength(100);
             entity.Property(e => e.SystemPrompt).HasMaxLength(1000);
+            entity.Property(e => e.WorkingDirectory).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Metadata).HasColumnType("json");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
-            
+
             entity.HasOne(e => e.ApiConfig)
                 .WithMany(c => c.Sessions)
                 .HasForeignKey(e => e.ApiConfigId)

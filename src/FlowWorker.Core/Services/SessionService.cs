@@ -120,6 +120,7 @@ public class SessionService : ISessionService
             SystemPrompt = session.SystemPrompt ?? string.Empty,
             Temperature = session.Temperature,
             MaxTokens = session.MaxTokens,
+            WorkingDirectory = session.WorkingDirectory,
             CreatedAt = session.CreatedAt,
             UpdatedAt = session.UpdatedAt,
             Messages = messages.ToList(),
@@ -146,6 +147,9 @@ public class SessionService : ISessionService
             throw new InvalidOperationException($"成员 {member.Name} 没有关联的API配置");
         }
 
+        // 处理工作目录
+        var workingDirectory = await ResolveWorkingDirectoryAsync(request.WorkingDirectory);
+
         var session = new Session
         {
             Id = Guid.NewGuid(),
@@ -155,7 +159,8 @@ public class SessionService : ISessionService
             Model = member.Model ?? string.Empty,
             SystemPrompt = member.Role?.SystemPrompt ?? "You are a helpful assistant.",
             Temperature = member.Temperature,
-            MaxTokens = member.MaxTokens,
+            MaxTokens = (int?)member.MaxToken,
+            WorkingDirectory = workingDirectory,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -183,6 +188,9 @@ public class SessionService : ISessionService
             throw new InvalidOperationException("群聊会话至少需要选择一个 AI 成员");
         }
 
+        // 处理工作目录
+        var workingDirectory = await ResolveWorkingDirectoryAsync(request.WorkingDirectory);
+
         // 群聊会话不需要统一的 API 配置，每个 AI 成员使用自己的 API 配置
         var session = new Session
         {
@@ -193,6 +201,7 @@ public class SessionService : ISessionService
             ApiConfigId = null,  // 群聊时 API 配置为 null
             Model = string.Empty, // 群聊时模型为空，每个 AI 成员有自己的模型
             SystemPrompt = request.SystemPrompt ?? "你是一个群聊助手，与其他AI助手协作帮助用户解决问题。",
+            WorkingDirectory = workingDirectory,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -346,5 +355,45 @@ public class SessionService : ISessionService
         }
 
         await _sessionRepository.RemoveMemberAsync(sessionId, memberId);
+    }
+
+    /// <summary>
+    /// 解析并验证工作目录路径
+    /// </summary>
+    /// <param name="requestedPath">请求的工作目录路径</param>
+    /// <returns>有效的工作目录路径</returns>
+    private static async Task<string> ResolveWorkingDirectoryAsync(string? requestedPath)
+    {
+        // 如果未指定工作目录，使用系统临时目录
+        if (string.IsNullOrWhiteSpace(requestedPath))
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "FlowWorker", "Sessions", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            return tempDir;
+        }
+
+        // 转换为绝对路径
+        var fullPath = Path.GetFullPath(requestedPath);
+
+        // 验证路径存在，如果不存在则创建
+        if (!Directory.Exists(fullPath))
+        {
+            Directory.CreateDirectory(fullPath);
+        }
+
+        // 验证路径可访问
+        try
+        {
+            // 测试读写权限
+            var testFile = Path.Combine(fullPath, $".flowworker_test_{Guid.NewGuid():N}");
+            await File.WriteAllTextAsync(testFile, "test");
+            File.Delete(testFile);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"工作目录不可访问或没有写入权限: {fullPath}", ex);
+        }
+
+        return fullPath;
     }
 }

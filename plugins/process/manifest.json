@@ -1,0 +1,202 @@
+{
+  "tools": [
+    {
+      "name": "execute_command",
+      "description": "执行系统命令",
+      "parameters": {
+        "command": {
+          "type": "string",
+          "description": "要执行的命令",
+          "required": true
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "命令参数列表",
+          "required": false
+        },
+        "working_directory": {
+          "type": "string",
+          "description": "工作目录",
+          "required": false
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "超时时间（毫秒）",
+          "required": false,
+          "default": 30000
+        },
+        "environment": {
+          "type": "object",
+          "description": "环境变量",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "exit_code": { "type": "integer" },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" },
+          "execution_time": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "COMMAND_NOT_FOUND",
+        "EXECUTION_FAILED",
+        "TIMEOUT",
+        "PERMISSION_DENIED"
+      ]
+    },
+    {
+      "name": "run_process",
+      "description": "运行进程",
+      "parameters": {
+        "command": {
+          "type": "string",
+          "description": "要运行的命令",
+          "required": true
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "命令参数列表",
+          "required": false
+        },
+        "working_directory": {
+          "type": "string",
+          "description": "工作目录",
+          "required": false
+        },
+        "environment": {
+          "type": "object",
+          "description": "环境变量",
+          "required": false
+        },
+        "redirect_stdout": {
+          "type": "boolean",
+          "description": "是否重定向标准输出",
+          "required": false,
+          "default": true
+        },
+        "redirect_stderr": {
+          "type": "boolean",
+          "description": "是否重定向标准错误",
+          "required": false,
+          "default": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "pid": { "type": "integer" },
+          "process_name": { "type": "string" },
+          "start_time": { "type": "string" }
+        }
+      },
+      "errors": [
+        "COMMAND_NOT_FOUND",
+        "EXECUTION_FAILED",
+        "PERMISSION_DENIED"
+      ]
+    },
+    {
+      "name": "kill_process",
+      "description": "终止进程",
+      "parameters": {
+        "pid": {
+          "type": "integer",
+          "description": "进程ID",
+          "required": true
+        },
+        "force": {
+          "type": "boolean",
+          "description": "是否强制终止",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" }
+        }
+      },
+      "errors": [
+        "PROCESS_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "list_processes",
+      "description": "列出进程",
+      "parameters": {
+        "filter": {
+          "type": "string",
+          "description": "过滤条件（进程名或命令行）",
+          "required": false
+        },
+        "include_system": {
+          "type": "boolean",
+          "description": "是否包含系统进程",
+          "required": false,
+          "default": false
+        }
+      },
+      "returns": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pid": { "type": "integer" },
+            "name": { "type": "string" },
+            "command_line": { "type": "string" },
+            "cpu_percent": { "type": "number" },
+            "memory_mb": { "type": "number" },
+            "status": { "type": "string" },
+            "start_time": { "type": "string" }
+          }
+        }
+      },
+      "errors": [
+        "EXECUTION_FAILED",
+        "PERMISSION_DENIED"
+      ]
+    },
+    {
+      "name": "get_process_info",
+      "description": "获取进程详细信息",
+      "parameters": {
+        "pid": {
+          "type": "integer",
+          "description": "进程ID",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "pid": { "type": "integer" },
+          "name": { "type": "string" },
+          "command_line": { "type": "string" },
+          "executable_path": { "type": "string" },
+          "cpu_percent": { "type": "number" },
+          "memory_mb": { "type": "number" },
+          "memory_percent": { "type": "number" },
+          "status": { "type": "string" },
+          "start_time": { "type": "string" },
+          "parent_pid": { "type": "integer" },
+          "threads": { "type": "integer" },
+          "user": { "type": "string" }
+        }
+      },
+      "errors": [
+        "PROCESS_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "EXECUTION_FAILED"
+      ]
+    }
+  ]
+}

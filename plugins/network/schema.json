@@ -1,0 +1,354 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "http_request_request": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri",
+          "description": "请求URL"
+        },
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+          "default": "GET",
+          "description": "HTTP方法"
+        },
+        "headers": {
+          "type": "object",
+          "description": "请求头"
+        },
+        "body": {
+          "type": "string",
+          "description": "请求体"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 300000,
+          "default": 30000,
+          "description": "超时时间（毫秒）"
+        },
+        "follow_redirects": {
+          "type": "boolean",
+          "description": "是否跟随重定向",
+          "default": true
+        },
+        "verify_ssl": {
+          "type": "boolean",
+          "description": "是否验证SSL证书（仅HTTPS）",
+          "default": true
+        }
+      },
+      "required": ["url"]
+    },
+    "http_request_response": {
+      "type": "object",
+      "properties": {
+        "status_code": {
+          "type": "integer",
+          "description": "HTTP状态码"
+        },
+        "status_text": {
+          "type": "string",
+          "description": "状态文本"
+        },
+        "headers": {
+          "type": "object",
+          "description": "响应头"
+        },
+        "body": {
+          "type": "string",
+          "description": "响应体"
+        },
+        "response_time": {
+          "type": "integer",
+          "description": "响应时间（毫秒）"
+        }
+      }
+    },
+    "download_file_request": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri",
+          "description": "文件URL"
+        },
+        "save_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "保存路径"
+        },
+        "headers": {
+          "type": "object",
+          "description": "请求头"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 600000,
+          "default": 60000,
+          "description": "超时时间（毫秒）"
+        },
+        "overwrite": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否覆盖已存在文件"
+        }
+      },
+      "required": ["url", "save_path"]
+    },
+    "download_file_response": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "是否成功"
+        },
+        "file_path": {
+          "type": "string",
+          "description": "文件路径"
+        },
+        "file_size": {
+          "type": "integer",
+          "description": "文件大小（字节）"
+        },
+        "download_time": {
+          "type": "integer",
+          "description": "下载时间（毫秒）"
+        }
+      }
+    },
+    "ping_host_request": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "description": "主机地址（IP或域名）"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 4,
+          "description": "Ping次数"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60,
+          "default": 5,
+          "description": "超时时间（秒）"
+        },
+        "packet_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65500,
+          "default": 32,
+          "description": "数据包大小（字节）"
+        }
+      },
+      "required": ["host"]
+    },
+    "ping_host_response": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "是否成功"
+        },
+        "host": {
+          "type": "string",
+          "description": "主机地址"
+        },
+        "ip_address": {
+          "type": "string",
+          "description": "IP地址"
+        },
+        "packets_sent": {
+          "type": "integer",
+          "description": "发送包数"
+        },
+        "packets_received": {
+          "type": "integer",
+          "description": "接收包数"
+        },
+        "packet_loss_percent": {
+          "type": "number",
+          "description": "丢包率（%）"
+        },
+        "min_time": {
+          "type": "number",
+          "description": "最小响应时间（毫秒）"
+        },
+        "max_time": {
+          "type": "number",
+          "description": "最大响应时间（毫秒）"
+        },
+        "avg_time": {
+          "type": "number",
+          "description": "平均响应时间（毫秒）"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ping_detail"
+          },
+          "description": "每次Ping的详细信息"
+        }
+      }
+    },
+    "ping_detail": {
+      "type": "object",
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "description": "序列号"
+        },
+        "time": {
+          "type": "number",
+          "description": "响应时间（毫秒）"
+        },
+        "ttl": {
+          "type": "integer",
+          "description": "TTL值"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["success", "timeout", "error"],
+          "description": "状态"
+        }
+      }
+    },
+    "resolve_dns_request": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "description": "域名"
+        },
+        "record_type": {
+          "type": "string",
+          "enum": ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "SOA", "PTR"],
+          "default": "A",
+          "description": "记录类型"
+        },
+        "dns_server": {
+          "type": "string",
+          "description": "指定DNS服务器"
+        }
+      },
+      "required": ["domain"]
+    },
+    "resolve_dns_response": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "description": "域名"
+        },
+        "record_type": {
+          "type": "string",
+          "description": "记录类型"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/dns_record"
+          },
+          "description": "DNS记录列表"
+        },
+        "ttl": {
+          "type": "integer",
+          "description": "TTL值"
+        }
+      }
+    },
+    "dns_record": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "记录类型"
+        },
+        "value": {
+          "type": "string",
+          "description": "记录值"
+        },
+        "priority": {
+          "type": "integer",
+          "description": "优先级（MX记录）"
+        },
+        "ttl": {
+          "type": "integer",
+          "description": "TTL值"
+        }
+      }
+    },
+    "check_port_request": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "description": "主机地址"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "端口号"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 60000,
+          "default": 5000,
+          "description": "超时时间（毫秒）"
+        },
+        "protocol": {
+          "type": "string",
+          "enum": ["tcp", "udp"],
+          "default": "tcp",
+          "description": "协议类型"
+        }
+      },
+      "required": ["host", "port"]
+    },
+    "check_port_response": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string",
+          "description": "主机地址"
+        },
+        "port": {
+          "type": "integer",
+          "description": "端口号"
+        },
+        "protocol": {
+          "type": "string",
+          "description": "协议类型"
+        },
+        "is_open": {
+          "type": "boolean",
+          "description": "端口是否开放"
+        },
+        "response_time": {
+          "type": "integer",
+          "description": "响应时间（毫秒）"
+        },
+        "service_name": {
+          "type": "string",
+          "description": "服务名称"
+        }
+      }
+    }
+  }
+}

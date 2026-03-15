@@ -69,6 +69,11 @@ public class Session
     public string? Metadata { get; set; }
 
     /// <summary>
+    /// 会话工作目录路径，限定AI工具的文件操作范围
+    /// </summary>
+    public string WorkingDirectory { get; set; } = string.Empty;
+
+    /// <summary>
     /// 关联的 API 配置
     /// </summary>
     [JsonIgnore]

@@ -1,0 +1,242 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "refactor_code_request": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要重构的代码内容"
+        },
+        "operation": {
+          "type": "string",
+          "enum": ["rename", "extract_method", "inline_variable", "move_method", "extract_class"],
+          "description": "重构操作类型"
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "description": "重构目标"
+        },
+        "new_name": {
+          "type": "string",
+          "description": "新名称（用于重命名操作）"
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言"
+        }
+      },
+      "required": ["code", "operation", "target"]
+    },
+    "refactor_code_response": {
+      "type": "object",
+      "properties": {
+        "refactored_code": {
+          "type": "string",
+          "description": "重构后的代码"
+        },
+        "changes": {
+          "type": "array",
+          "description": "变更列表",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "description": { "type": "string" },
+              "line_start": { "type": "integer" },
+              "line_end": { "type": "integer" }
+            }
+          }
+        },
+        "affected_lines": {
+          "type": "array",
+          "description": "受影响的行号",
+          "items": { "type": "integer" }
+        }
+      }
+    },
+    "format_code_request": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要格式化的代码内容"
+        },
+        "language": {
+          "type": "string",
+          "enum": ["csharp", "javascript", "typescript", "python", "java", "cpp", "c", "go", "rust", "ruby", "php", "swift", "kotlin", "scala", "html", "css", "json", "xml", "yaml"],
+          "description": "编程语言"
+        },
+        "style": {
+          "type": "string",
+          "enum": ["default", "google", "microsoft", "custom"],
+          "default": "default",
+          "description": "代码风格"
+        },
+        "options": {
+          "type": "object",
+          "description": "格式化选项",
+          "properties": {
+            "indent_size": { "type": "integer", "default": 4 },
+            "use_tabs": { "type": "boolean", "default": false },
+            "max_line_length": { "type": "integer", "default": 120 },
+            "brace_style": { "type": "string", "enum": ["same_line", "new_line"], "default": "same_line" },
+            "insert_final_newline": { "type": "boolean", "default": true }
+          }
+        }
+      },
+      "required": ["code", "language"]
+    },
+    "format_code_response": {
+      "type": "object",
+      "properties": {
+        "formatted_code": {
+          "type": "string",
+          "description": "格式化后的代码"
+        },
+        "changes_made": {
+          "type": "boolean",
+          "description": "是否进行了格式化修改"
+        },
+        "format_stats": {
+          "type": "object",
+          "description": "格式化统计信息",
+          "properties": {
+            "lines_changed": { "type": "integer" },
+            "whitespace_changes": { "type": "integer" },
+            "indentation_changes": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "generate_code_request": {
+      "type": "object",
+      "properties": {
+        "template": {
+          "type": "string",
+          "minLength": 1,
+          "description": "代码模板或描述"
+        },
+        "language": {
+          "type": "string",
+          "description": "目标编程语言"
+        },
+        "variables": {
+          "type": "object",
+          "description": "模板变量"
+        },
+        "context": {
+          "type": "string",
+          "description": "上下文信息"
+        }
+      },
+      "required": ["template", "language"]
+    },
+    "generate_code_response": {
+      "type": "object",
+      "properties": {
+        "generated_code": {
+          "type": "string",
+          "description": "生成的代码"
+        },
+        "explanation": {
+          "type": "string",
+          "description": "代码说明"
+        },
+        "suggestions": {
+          "type": "array",
+          "description": "改进建议",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "transform_code_request": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要转换的代码内容"
+        },
+        "source_language": {
+          "type": "string",
+          "description": "源编程语言"
+        },
+        "target_language": {
+          "type": "string",
+          "description": "目标编程语言"
+        },
+        "transformation_type": {
+          "type": "string",
+          "enum": ["language_convert", "syntax_upgrade", "framework_migrate"],
+          "default": "language_convert",
+          "description": "转换类型"
+        }
+      },
+      "required": ["code", "source_language", "target_language"]
+    },
+    "transform_code_response": {
+      "type": "object",
+      "properties": {
+        "transformed_code": {
+          "type": "string",
+          "description": "转换后的代码"
+        },
+        "conversion_notes": {
+          "type": "array",
+          "description": "转换说明",
+          "items": { "type": "string" }
+        },
+        "warnings": {
+          "type": "array",
+          "description": "警告信息",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "apply_edit_request": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "原始代码内容"
+        },
+        "search": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要搜索的代码块"
+        },
+        "replace": {
+          "type": "string",
+          "description": "替换后的代码块"
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言"
+        }
+      },
+      "required": ["code", "search", "replace"]
+    },
+    "apply_edit_response": {
+      "type": "object",
+      "properties": {
+        "edited_code": {
+          "type": "string",
+          "description": "编辑后的代码"
+        },
+        "success": {
+          "type": "boolean",
+          "description": "是否成功"
+        },
+        "match_count": {
+          "type": "integer",
+          "description": "匹配数量"
+        }
+      }
+    }
+  }
+}

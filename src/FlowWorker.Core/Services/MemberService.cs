@@ -78,7 +78,7 @@ public class MemberService : IMemberService
             ApiConfigId = request.ApiConfigId,
             Model = model,
             Temperature = request.Temperature,
-            MaxTokens = request.MaxTokens,
+            MaxToken = request.MaxToken,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -139,7 +139,8 @@ public class MemberService : IMemberService
             if (request.Temperature.HasValue)
                 member.Temperature = request.Temperature.Value;
             
-            member.MaxTokens = request.MaxTokens;
+            if (request.MaxToken.HasValue)
+                member.MaxToken = request.MaxToken.Value;
         }
 
         member.UpdatedAt = DateTime.UtcNow;
@@ -179,7 +180,7 @@ public class MemberService : IMemberService
             ApiConfigName = member.ApiConfig?.Name,
             Model = member.Model,
             Temperature = member.Temperature,
-            MaxTokens = member.MaxTokens
+            MaxToken = member.MaxToken
         };
     }
 
@@ -211,7 +212,7 @@ public class MemberService : IMemberService
             ApiConfigName = member.ApiConfig?.Name,
             Model = member.Model,
             Temperature = member.Temperature,
-            MaxTokens = member.MaxTokens
+            MaxToken = member.MaxToken
         };
     }
 

@@ -1,0 +1,208 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "calculate_request": {
+      "type": "object",
+      "properties": {
+        "expression": {
+          "type": "string",
+          "minLength": 1,
+          "description": "数学表达式，支持 +, -, *, /, %, ^ 等运算符"
+        }
+      },
+      "required": ["expression"]
+    },
+    "calculate_response": {
+      "type": "object",
+      "properties": {
+        "expression": {
+          "type": "string",
+          "description": "原始表达式"
+        },
+        "result": {
+          "type": "number",
+          "description": "计算结果"
+        },
+        "result_type": {
+          "type": "string",
+          "enum": ["integer", "float", "double", "decimal", "number"],
+          "description": "结果类型"
+        }
+      }
+    },
+    "convert_unit_request": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "要转换的数值"
+        },
+        "from_unit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "原单位"
+        },
+        "to_unit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "目标单位"
+        }
+      },
+      "required": ["value", "from_unit", "to_unit"]
+    },
+    "convert_unit_response": {
+      "type": "object",
+      "properties": {
+        "original_value": {
+          "type": "number",
+          "description": "原始数值"
+        },
+        "original_unit": {
+          "type": "string",
+          "description": "原单位"
+        },
+        "converted_value": {
+          "type": "number",
+          "description": "转换后的数值"
+        },
+        "target_unit": {
+          "type": "string",
+          "description": "目标单位"
+        },
+        "conversion_rate": {
+          "type": "number",
+          "description": "转换比率"
+        }
+      }
+    },
+    "generate_uuid_request": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 1,
+          "description": "生成数量"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["standard", "nodashes", "no_dashes", "uppercase", "upper", "braces", "parentheses", "hex"],
+          "default": "standard",
+          "description": "UUID格式"
+        }
+      }
+    },
+    "generate_uuid_response": {
+      "type": "object",
+      "properties": {
+        "uuids": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          ],
+          "description": "生成的UUID或UUID列表"
+        },
+        "count": {
+          "type": "integer",
+          "description": "生成数量"
+        },
+        "format": {
+          "type": "string",
+          "description": "UUID格式"
+        }
+      }
+    },
+    "get_timestamp_request": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["unix", "unix_seconds", "unix_milliseconds", "iso", "iso8601", "rfc", "rfc1123", "datetime", "date", "time"],
+          "default": "unix",
+          "description": "时间戳格式"
+        },
+        "timezone": {
+          "type": "string",
+          "enum": ["utc", "local"],
+          "default": "utc",
+          "description": "时区"
+        }
+      }
+    },
+    "get_timestamp_response": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "string" }
+          ],
+          "description": "时间戳值"
+        },
+        "format": {
+          "type": "string",
+          "description": "时间戳格式"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "时区"
+        },
+        "datetime": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601格式的日期时间"
+        }
+      }
+    },
+    "unit_definitions": {
+      "type": "object",
+      "description": "支持的单位定义",
+      "properties": {
+        "length": {
+          "type": "array",
+          "description": "长度单位",
+          "items": {
+            "type": "string",
+            "enum": ["m", "meter", "meters", "米", "km", "kilometer", "kilometers", "千米", "cm", "centimeter", "centimeters", "厘米", "mm", "millimeter", "millimeters", "毫米", "inch", "inches", "in", "英寸", "ft", "foot", "feet", "英尺", "yd", "yard", "yards", "码", "mi", "mile", "miles", "英里"]
+          }
+        },
+        "weight": {
+          "type": "array",
+          "description": "重量单位",
+          "items": {
+            "type": "string",
+            "enum": ["kg", "kilogram", "kilograms", "千克", "g", "gram", "grams", "克", "mg", "milligram", "milligrams", "毫克", "t", "ton", "tons", "tonne", "tonnes", "吨", "lb", "pound", "pounds", "磅", "oz", "ounce", "ounces", "盎司"]
+          }
+        },
+        "temperature": {
+          "type": "array",
+          "description": "温度单位",
+          "items": {
+            "type": "string",
+            "enum": ["c", "celsius", "f", "fahrenheit", "k", "kelvin", "°c", "°f", "摄氏度", "华氏度", "开尔文"]
+          }
+        },
+        "data_storage": {
+          "type": "array",
+          "description": "数据存储单位",
+          "items": {
+            "type": "string",
+            "enum": ["b", "byte", "bytes", "字节", "kb", "kilobyte", "kilobytes", "千字节", "mb", "megabyte", "megabytes", "兆字节", "gb", "gigabyte", "gigabytes", "吉字节", "tb", "terabyte", "terabytes", "太字节"]
+          }
+        },
+        "time": {
+          "type": "array",
+          "description": "时间单位",
+          "items": {
+            "type": "string",
+            "enum": ["s", "sec", "second", "seconds", "秒", "min", "minute", "minutes", "分钟", "h", "hr", "hour", "hours", "小时", "d", "day", "days", "天", "w", "week", "weeks", "周", "mo", "month", "months", "月", "y", "year", "years", "年"]
+          }
+        }
+      }
+    }
+  }
+}

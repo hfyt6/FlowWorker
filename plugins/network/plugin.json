@@ -1,0 +1,12 @@
+{
+  "name": "network",
+  "version": "1.0.0",
+  "description": "网络工具集，提供HTTP请求、文件下载、Ping、DNS解析和端口检查功能，支持Windows和Linux系统",
+  "author": "FlowWorker",
+  "category": "system",
+  "level": 3,
+  "tags": ["network", "http", "ping", "dns", "port", "download", "windows", "linux"],
+  "dependencies": [],
+  "entry_point": "handler.cs",
+  "enabled": true
+}

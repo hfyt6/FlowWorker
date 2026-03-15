@@ -1,0 +1,172 @@
+{
+  "tools": [
+    {
+      "name": "parse_code",
+      "description": "解析代码，提取代码结构信息（函数、类、变量等）",
+      "parameters": {
+        "code": {
+          "type": "string",
+          "description": "要解析的代码内容",
+          "required": true
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言（csharp, javascript, typescript, python, java, cpp, go, rust等）",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "language": { "type": "string" },
+          "functions": { "type": "array" },
+          "classes": { "type": "array" },
+          "imports": { "type": "array" },
+          "variables": { "type": "array" },
+          "line_count": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "UNSUPPORTED_LANGUAGE",
+        "PARSE_ERROR",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "find_function",
+      "description": "在代码中查找函数定义",
+      "parameters": {
+        "code": {
+          "type": "string",
+          "description": "要搜索的代码内容",
+          "required": true
+        },
+        "function_name": {
+          "type": "string",
+          "description": "函数名称（支持正则表达式）",
+          "required": true
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "found": { "type": "boolean" },
+          "functions": { "type": "array" },
+          "count": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "find_class",
+      "description": "在代码中查找类定义",
+      "parameters": {
+        "code": {
+          "type": "string",
+          "description": "要搜索的代码内容",
+          "required": true
+        },
+        "class_name": {
+          "type": "string",
+          "description": "类名称（支持正则表达式）",
+          "required": true
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "found": { "type": "boolean" },
+          "classes": { "type": "array" },
+          "count": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "get_dependencies",
+      "description": "获取项目的依赖列表",
+      "parameters": {
+        "project_path": {
+          "type": "string",
+          "description": "项目路径",
+          "required": true
+        },
+        "type": {
+          "type": "string",
+          "description": "依赖类型（all, nuget, npm, pip, maven, cargo等）",
+          "required": false,
+          "default": "all"
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "project_path": { "type": "string" },
+          "dependencies": { "type": "array" },
+          "dev_dependencies": { "type": "array" },
+          "total_count": { "type": "integer" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "PROJECT_NOT_FOUND",
+        "UNSUPPORTED_PROJECT_TYPE",
+        "EXECUTION_FAILED"
+      ]
+    },
+    {
+      "name": "analyze_complexity",
+      "description": "分析代码复杂度（圈复杂度、认知复杂度等）",
+      "parameters": {
+        "code": {
+          "type": "string",
+          "description": "要分析的代码内容",
+          "required": true
+        },
+        "language": {
+          "type": "string",
+          "description": "编程语言",
+          "required": false
+        },
+        "metrics": {
+          "type": "array",
+          "description": "要计算的复杂度指标（cyclomatic, cognitive, lines, nesting）",
+          "required": false
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "overall_score": { "type": "number" },
+          "cyclomatic_complexity": { "type": "integer" },
+          "cognitive_complexity": { "type": "integer" },
+          "lines_of_code": { "type": "integer" },
+          "max_nesting_depth": { "type": "integer" },
+          "function_complexities": { "type": "array" },
+          "recommendations": { "type": "array" }
+        }
+      },
+      "errors": [
+        "INVALID_PARAMETERS",
+        "EXECUTION_FAILED"
+      ]
+    }
+  ]
+}

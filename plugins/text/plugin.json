@@ -1,0 +1,12 @@
+{
+  "name": "text",
+  "version": "1.0.0",
+  "description": "文本处理工具集，提供文本搜索、替换、格式化等功能",
+  "author": "FlowWorker",
+  "category": "core",
+  "level": 1,
+  "tags": ["text", "string", "search", "replace", "json"],
+  "dependencies": [],
+  "entry_point": "handler.cs",
+  "enabled": true
+}
