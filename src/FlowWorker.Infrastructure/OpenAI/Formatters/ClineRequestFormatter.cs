@@ -20,7 +20,8 @@ public class ClineRequestFormatter : IRequestFormatter
         string? systemPrompt = null,
         decimal? temperature = null,
         int? maxTokens = null,
-        bool stream = false)
+        bool stream = false,
+        Session? session = null)
     {
         var request = new ClineRequest
         {
@@ -30,13 +31,16 @@ public class ClineRequestFormatter : IRequestFormatter
             StreamOptions = stream ? new StreamOptions { IncludeUsage = true } : null
         };
 
+        // 构建系统提示词，包含环境信息
+        var fullSystemPrompt = BuildSystemPrompt(systemPrompt, session);
+        
         // 添加系统提示
-        if (!string.IsNullOrWhiteSpace(systemPrompt))
+        if (!string.IsNullOrWhiteSpace(fullSystemPrompt))
         {
             request.Messages.Add(new ClineMessage 
             { 
                 Role = "system", 
-                Content = systemPrompt 
+                Content = fullSystemPrompt 
             });
         }
 
@@ -55,17 +59,32 @@ public class ClineRequestFormatter : IRequestFormatter
             // 用户消息使用JSON数组格式（多模态格式）
             if (message.Role == MessageRole.User)
             {
+                var contentItems = new List<ClineContentItem>
+                {
+                    // 1. Task 部分
+                    new ClineContentItem
+                    {
+                        Type = "text",
+                        Text = $"<task>\n{message.Content}\n</task>"
+                    },
+                    // 2. Task Progress Recommended 部分
+                    new ClineContentItem
+                    {
+                        Type = "text",
+                        Text = "\n# task_progress RECOMMENDED\n\nWhen starting a new task, it is recommended to include a todo list using the task_progress parameter.\n\n\n1. Include a todo list using the task_progress parameter in your next tool call\n2. Create a comprehensive checklist of all steps needed\n3. Use markdown format: - [ ] for incomplete, - [x] for complete\n\n**Benefits of creating a todo/task_progress list now:**\n\t- Clear roadmap for implementation\n\t- Progress tracking throughout the task\n\t- Nothing gets forgotten or missed\n\t- Users can see, monitor, and edit the plan\n\n**Example structure:**```\n- [ ] Analyze requirements\n- [ ] Set up necessary files\n- [ ] Implement main functionality\n- [ ] Handle edge cases\n- [ ] Test the implementation\n- [ ] Verify results```\n\nKeeping the task_progress list updated helps track progress and ensures nothing is missed.\n"
+                    },
+                    // 3. Environment Details 部分
+                    new ClineContentItem
+                    {
+                        Type = "text",
+                        Text = BuildEnvironmentDetails(session)
+                    }
+                };
+
                 request.Messages.Add(new ClineMessage
                 {
                     Role = role,
-                    Content = new List<ClineContentItem>
-                    {
-                        new ClineContentItem
-                        {
-                            Type = "text",
-                            Text = message.Content
-                        }
-                    }
+                    Content = contentItems
                 });
             }
             else
@@ -181,6 +200,77 @@ public class ClineRequestFormatter : IRequestFormatter
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// 构建系统提示词
+    /// </summary>
+    /// <param name="systemPrompt">原始系统提示词</param>
+    /// <param name="session">会话信息</param>
+    /// <returns>完整的系统提示词</returns>
+    private string BuildSystemPrompt(string? systemPrompt, Session? session)
+    {
+        if (string.IsNullOrWhiteSpace(systemPrompt))
+        {
+            return string.Empty;
+        }
+
+        var fullSystemPrompt = systemPrompt.Trim();
+
+        // 如果 session 有工作目录设置，替换系统提示词中的硬编码工作目录
+        if (session != null && !string.IsNullOrWhiteSpace(session.WorkingDirectory))
+        {
+            // 将硬编码的 d:\\Test 替换为实际工作目录
+            // 需要处理多种转义格式
+            var workingDirectory = session.WorkingDirectory;
+            
+            // 替换 d:\\\\Test（四重转义，JSON 序列化后的格式）- 最先处理，因为最具体
+            fullSystemPrompt = fullSystemPrompt.Replace("d:\\\\\\\\Test", workingDirectory);
+            
+            // 替换 d:\\Test（双重转义，C# 字面量格式）
+            fullSystemPrompt = fullSystemPrompt.Replace("d:\\\\Test", workingDirectory);
+            
+            // 替换 d:\Test（普通格式）
+            fullSystemPrompt = fullSystemPrompt.Replace(@"d:\Test", workingDirectory);
+            
+            // 替换当前工作目录的硬编码（例如 FlowWorker 项目目录）
+            fullSystemPrompt = fullSystemPrompt.Replace(@"d:\sources\AIProjects\FlowWorker", workingDirectory);
+        }
+
+        return fullSystemPrompt;
+    }
+
+    /// <summary>
+    /// 构建环境详情部分，包含当前session的工作目录
+    /// </summary>
+    /// <param name="session">会话信息</param>
+    /// <returns>环境详情字符串</returns>
+    private string BuildEnvironmentDetails(Session? session)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<environment_details>\n");
+        sb.Append("# Visual Studio Code Visible Files\n\n");
+        sb.Append("# Visual Studio Code Open Tabs\n\n");
+        sb.Append("# Current Time\n");
+        sb.Append(DateTime.Now.ToString("M/d/yyyy, h:mm:ss tt (\\U\\T\\C+8:00)"));
+        sb.Append("\n\n");
+        
+        // 添加当前session的工作目录
+        if (session != null && !string.IsNullOrWhiteSpace(session.WorkingDirectory))
+        {
+            sb.Append("# Current Working Directory\n");
+            sb.Append(session.WorkingDirectory);
+            sb.Append("\n\n");
+        }
+        
+        sb.Append("# Current Working Directory Files\n\n");
+        sb.Append("# Workspace Configuration\n{}\n\n");
+        sb.Append("# Detected CLI Tools\n\n");
+        sb.Append("# Context Window Usage\n0 / 128K tokens used (0%)\n\n");
+        sb.Append("# Current Mode\nACT MODE\n");
+        sb.Append("</environment_details>");
+        
+        return sb.ToString();
     }
 }
 

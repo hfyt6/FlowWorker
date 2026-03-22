@@ -27,6 +27,7 @@ public interface IRequestFormatter
     /// <param name="temperature">温度</param>
     /// <param name="maxTokens">最大Token数</param>
     /// <param name="stream">是否流式</param>
+    /// <param name="session">会话信息（可选，用于获取环境信息如工作目录）</param>
     /// <returns>请求体对象</returns>
     object BuildRequestBody(
         string model,
@@ -34,7 +35,8 @@ public interface IRequestFormatter
         string? systemPrompt = null,
         decimal? temperature = null,
         int? maxTokens = null,
-        bool stream = false);
+        bool stream = false,
+        Session? session = null);
 
     /// <summary>
     /// 获取请求头

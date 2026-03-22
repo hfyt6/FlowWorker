@@ -372,6 +372,28 @@ async function handleDeleteMessage(id: string) {
     console.log('Delete message:', id);
 }
 
+// 复制消息内容
+function handleCopyMessage(content: string) {
+    if (!content) return;
+    
+    // 移除 thinking 标签内容
+    const cleanContent = content.replace(/<thinking>[\s\S]*?<\/thinking>/g, '').trim();
+    
+    navigator.clipboard.writeText(cleanContent).then(() => {
+        // 显示复制成功提示
+        const toast = document.createElement('div');
+        toast.className = 'copy-toast';
+        toast.textContent = '已复制到剪贴板';
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+    });
+}
+
 // Derived state
 $: sessionMessages = processMessages($messages);
 $: isLoading = $loading;
@@ -400,7 +422,7 @@ function handleKeyDown(e: KeyboardEvent) {
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             </button>
             <div class="header-info">
-                <h1>会话详情</h1>
+                <h1>{currentSession?.title || '会话详情'}</h1>
                 <span class="header-subtitle">{sessionMessages.length} 条消息</span>
             </div>
         </div>
@@ -531,13 +553,22 @@ function handleKeyDown(e: KeyboardEvent) {
                             {/if}
                         </div>
                     </div>
-                    <button
-                        class="btn-delete"
-                        on:click={() => handleDeleteMessage(message.id)}
-                        title="删除消息"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                    </button>
+                    <div class="message-actions">
+                        <button
+                            class="btn-action"
+                            on:click={() => handleCopyMessage(message.content)}
+                            title="复制消息"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        </button>
+                        <button
+                            class="btn-delete"
+                            on:click={() => handleDeleteMessage(message.id)}
+                            title="删除消息"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </button>
+                    </div>
                 </div>
             {/each}
         {/if}
@@ -1078,6 +1109,38 @@ function handleKeyDown(e: KeyboardEvent) {
         border-radius: 1rem;
     }
 
+    .message-actions {
+        display: flex;
+        gap: 0.25rem;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .message-bubble:hover .message-actions {
+        opacity: 1;
+    }
+
+    .btn-action {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border: none;
+        background: transparent;
+        color: #475569;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .btn-action:hover {
+        background: rgba(96, 165, 250, 0.15);
+        color: #60a5fa;
+    }
+
     .btn-delete {
         display: flex;
         align-items: center;
@@ -1089,10 +1152,8 @@ function handleKeyDown(e: KeyboardEvent) {
         color: #475569;
         border-radius: 50%;
         cursor: pointer;
-        opacity: 0;
         transition: all 0.2s;
         flex-shrink: 0;
-        align-self: center;
     }
 
     .message-bubble:hover .btn-delete {
@@ -1102,6 +1163,30 @@ function handleKeyDown(e: KeyboardEvent) {
     .btn-delete:hover {
         background: rgba(239, 68, 68, 0.15);
         color: #f87171;
+    }
+
+    /* 复制成功提示 */
+    .copy-toast {
+        position: fixed;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(34, 197, 94, 0.9);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 2rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        z-index: 1000;
+        animation: fadeInOut 2s ease-in-out;
+    }
+
+    @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+        10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
     }
 
     .input-area {
@@ -1225,6 +1310,10 @@ function handleKeyDown(e: KeyboardEvent) {
         }
 
         .btn-delete {
+            opacity: 1;
+        }
+
+        .message-actions {
             opacity: 1;
         }
     }

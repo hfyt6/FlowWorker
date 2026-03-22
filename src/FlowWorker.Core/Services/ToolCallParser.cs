@@ -26,9 +26,9 @@ public class ToolCallParser
         RegexOptions.Singleline | RegexOptions.Compiled);
 
     /// <summary>
-    /// 从AI响应内容中解析工具调用
+    /// 从 AI 响应内容中解析工具调用
     /// </summary>
-    /// <param name="content">AI响应内容</param>
+    /// <param name="content">AI 响应内容</param>
     /// <returns>工具调用列表</returns>
     public static List<ToolCall> ParseToolCalls(string content)
     {
@@ -45,6 +45,13 @@ public class ToolCallParser
             if (match.Groups.Count >= 3)
             {
                 var toolName = match.Groups[1].Value;
+                
+                // 过滤掉 thinking 标签 - think 标签只影响显示效果，不应该被解析为工具调用
+                if (toolName.Equals("thinking", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                
                 var toolContent = match.Groups[2].Value;
 
                 // 解析参数

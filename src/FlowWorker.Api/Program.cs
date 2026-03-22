@@ -63,6 +63,9 @@ builder.Services.AddScoped<GroupChatOptions>(sp =>
 // 配置请求格式化器工厂（单例模式）
 builder.Services.AddSingleton<IRequestFormatterFactory, RequestFormatterFactory>();
 
+// 配置工具服务
+builder.Services.AddBuiltInToolsWithAutoRegistration();
+
 // 配置服务层
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IMessageService, MessageService>();

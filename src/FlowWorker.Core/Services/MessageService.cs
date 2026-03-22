@@ -153,7 +153,9 @@ public class MessageService : IMessageService
             allMessages,
             session.SystemPrompt,
             session.Temperature,
-            session.MaxTokens);
+            session.MaxTokens,
+            null,
+            session);
 
         // 保存助手消息
         var assistantMessage = new Message
@@ -229,7 +231,9 @@ public class MessageService : IMessageService
             remainingMessages,
             session.SystemPrompt,
             session.Temperature,
-            session.MaxTokens);
+            session.MaxTokens,
+            null,
+            session);
 
         // 保存新的助手消息
         var assistantMessage = new Message
@@ -312,7 +316,9 @@ public class MessageService : IMessageService
             },
             session.SystemPrompt,
             session.Temperature,
-            session.MaxTokens);
+            session.MaxTokens,
+            null,
+            session);
 
         var responseContent = fullContent.ToString();
 
@@ -407,7 +413,9 @@ public class MessageService : IMessageService
             },
             session.SystemPrompt,
             session.Temperature,
-            session.MaxTokens);
+            session.MaxTokens,
+            null,
+            session);
 
         var responseContent = fullContent.ToString();
 
@@ -572,7 +580,9 @@ public class MessageService : IMessageService
                     },
                     systemPrompt,
                     aiMember.Temperature,
-                    (int?)aiMember.MaxToken ?? session.MaxTokens);
+                    (int?)aiMember.MaxToken ?? session.MaxTokens,
+                    null,
+                    session);
 
                 var responseContent = fullContent.ToString();
 

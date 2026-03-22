@@ -136,3 +136,6 @@ frontend/.vercel/
 frontend.netlify/
 frontend.wrangler/
 frontend/build/
+
+# 不忽略frontend/src/lib/目录
+!frontend/src/lib/

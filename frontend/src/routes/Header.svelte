@@ -37,7 +37,7 @@
 	</nav>
 
 	<div class="corner">
-		<a href="https://github.com/sveltejs/kit" class="github-link">
+		<a href="https://github.com/hfyt6/FlowWorker" class="github-link">
 			<img src={github} alt="GitHub" />
 		</a>
 	</div>

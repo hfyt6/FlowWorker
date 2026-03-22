@@ -20,6 +20,7 @@ public interface IOpenAIService
     /// <param name="temperature">温度</param>
     /// <param name="maxTokens">最大 Token 数</param>
     /// <param name="requestFormat">请求格式模式，默认为 cline 模式</param>
+    /// <param name="session">会话信息（可选，用于传递环境信息）</param>
     /// <returns>AI 响应内容</returns>
     Task<string> SendMessageAsync(
         string apiKey,
@@ -29,7 +30,8 @@ public interface IOpenAIService
         string? systemPrompt = null,
         decimal? temperature = null,
         int? maxTokens = null,
-        string? requestFormat = null);
+        string? requestFormat = null,
+        Session? session = null);
 
     /// <summary>
     /// 流式发送消息到 OpenAI API
@@ -43,6 +45,7 @@ public interface IOpenAIService
     /// <param name="temperature">温度</param>
     /// <param name="maxTokens">最大 Token 数</param>
     /// <param name="requestFormat">请求格式模式，默认为 cline 模式</param>
+    /// <param name="session">会话信息（可选，用于传递环境信息）</param>
     /// <returns>完整的响应内容</returns>
     Task<string> SendMessageStreamAsync(
         string apiKey,
@@ -53,7 +56,8 @@ public interface IOpenAIService
         string? systemPrompt = null,
         decimal? temperature = null,
         int? maxTokens = null,
-        string? requestFormat = null);
+        string? requestFormat = null,
+        Session? session = null);
 
     /// <summary>
     /// 获取可用模型列表
