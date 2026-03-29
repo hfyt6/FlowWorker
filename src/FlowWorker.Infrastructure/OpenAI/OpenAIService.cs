@@ -458,8 +458,8 @@ public class OpenAIService : IOpenAIService
                     {
                         _logger.LogInformation("[工具调用链路]   找到已注册的工具：{ToolName}", toolCall.ToolName);
                         
-                        // 执行工具
-                        var result = await _toolExecutor.ExecuteAsync(toolCall.ToolName, action, mappedParametersElement);
+                        // 执行工具，传入工作目录
+                        var result = await _toolExecutor.ExecuteAsync(toolCall.ToolName, action, mappedParametersElement, workingDirectory);
                         
                         if (result.Success)
                         {
@@ -532,7 +532,8 @@ public class OpenAIService : IOpenAIService
                                 _logger.LogInformation("[工具调用链路]   执行操作：{Action}", toolCall.ToolName);
                                 _logger.LogInformation("[工具调用链路]   执行参数：{Parameters}", mappedParametersJson);
                                 
-                                var result = await _toolExecutor.ExecuteAsync(mappedToolName, toolCall.ToolName, mappedParametersElement);
+                                // 执行工具，传入工作目录
+                                var result = await _toolExecutor.ExecuteAsync(mappedToolName, toolCall.ToolName, mappedParametersElement, workingDirectory);
                                 
                                 _logger.LogInformation("[工具调用链路]   工具执行结果：Success={Success}, Error={Error}, Response.Status={ResponseStatus}, Response.ErrorInfo={ErrorInfo}", 
                                     result.Success, 

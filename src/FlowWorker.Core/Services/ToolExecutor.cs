@@ -34,8 +34,9 @@ public class ToolExecutor
     /// <param name="toolName">工具名称</param>
     /// <param name="action">操作名称</param>
     /// <param name="parameters">参数</param>
+    /// <param name="workingDirectory">工作目录（可选）</param>
     /// <returns>执行结果</returns>
-    public async Task<ToolExecutionResult> ExecuteAsync(string toolName, string action, JsonElement parameters)
+    public async Task<ToolExecutionResult> ExecuteAsync(string toolName, string action, JsonElement parameters, string? workingDirectory = null)
     {
         var stopwatch = Stopwatch.StartNew();
         
@@ -52,7 +53,24 @@ public class ToolExecutor
                 };
             }
 
-            var response = await tool.ExecuteAsync(action, parameters);
+            // 如果有工作目录，将其添加到参数中
+            var parametersWithWorkingDir = parameters;
+            if (!string.IsNullOrWhiteSpace(workingDirectory))
+            {
+                var jsonString = parameters.GetRawText();
+                using var jsonDoc = JsonDocument.Parse(jsonString);
+                var jsonElement = jsonDoc.RootElement.Clone();
+                
+                // 使用 JsonSerializer 反序列化再添加工作目录
+                var parametersDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonString) ?? new();
+                if (!parametersDict.ContainsKey("working_directory"))
+                {
+                    parametersDict["working_directory"] = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(workingDirectory));
+                    parametersWithWorkingDir = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(parametersDict));
+                }
+            }
+            
+            var response = await tool.ExecuteAsync(action, parametersWithWorkingDir);
             response.ExecutionTime = stopwatch.ElapsedMilliseconds;
             
             return new ToolExecutionResult

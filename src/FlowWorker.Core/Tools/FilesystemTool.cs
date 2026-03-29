@@ -28,6 +28,35 @@ public class FilesystemTool : IToolHandler
     }
 
     /// <summary>
+    /// 解析文件路径，如果是相对路径则转换为绝对路径（相对于工作目录）
+    /// </summary>
+    /// <param name="filePath">文件路径</param>
+    /// <param name="workingDirectory">工作目录</param>
+    /// <returns>绝对路径</returns>
+    private string ResolveFilePath(string filePath, string? workingDirectory = null)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return filePath;
+        }
+
+        // 如果已经是绝对路径，直接返回
+        if (Path.IsPathRooted(filePath))
+        {
+            return filePath;
+        }
+
+        // 如果是相对路径，转换为绝对路径
+        if (!string.IsNullOrWhiteSpace(workingDirectory))
+        {
+            return Path.Combine(workingDirectory, filePath);
+        }
+
+        // 如果没有工作目录，使用当前工作目录
+        return Path.GetFullPath(filePath);
+    }
+
+    /// <summary>
     /// 读取文件内容
     /// </summary>
     private async Task<ToolResponse> ReadFileAsync(JsonElement parameters)
@@ -35,6 +64,12 @@ public class FilesystemTool : IToolHandler
         try
         {
             var filePath = parameters.GetProperty("file_path").GetString();
+            var workingDirectory = parameters.TryGetProperty("working_directory", out var wdProp)
+                ? wdProp.GetString()
+                : null;
+            
+            // 解析文件路径
+            filePath = ResolveFilePath(filePath, workingDirectory);
             
             if (string.IsNullOrWhiteSpace(filePath))
             {
@@ -75,6 +110,12 @@ public class FilesystemTool : IToolHandler
         {
             var filePath = parameters.GetProperty("file_path").GetString();
             var content = parameters.GetProperty("content").GetString();
+            var workingDirectory = parameters.TryGetProperty("working_directory", out var wdProp)
+                ? wdProp.GetString()
+                : null;
+            
+            // 解析文件路径
+            filePath = ResolveFilePath(filePath, workingDirectory);
             
             if (string.IsNullOrWhiteSpace(filePath))
             {
@@ -132,6 +173,12 @@ public class FilesystemTool : IToolHandler
         try
         {
             var directoryPath = parameters.GetProperty("directory_path").GetString();
+            var workingDirectory = parameters.TryGetProperty("working_directory", out var wdProp)
+                ? wdProp.GetString()
+                : null;
+            
+            // 解析目录路径
+            directoryPath = ResolveFilePath(directoryPath, workingDirectory);
             
             if (string.IsNullOrWhiteSpace(directoryPath))
             {
@@ -213,6 +260,12 @@ public class FilesystemTool : IToolHandler
         try
         {
             var filePath = parameters.GetProperty("file_path").GetString();
+            var workingDirectory = parameters.TryGetProperty("working_directory", out var wdProp)
+                ? wdProp.GetString()
+                : null;
+            
+            // 解析文件路径
+            filePath = ResolveFilePath(filePath, workingDirectory);
             
             if (string.IsNullOrWhiteSpace(filePath))
             {
@@ -243,6 +296,12 @@ public class FilesystemTool : IToolHandler
         try
         {
             var filePath = parameters.GetProperty("file_path").GetString();
+            var workingDirectory = parameters.TryGetProperty("working_directory", out var wdProp)
+                ? wdProp.GetString()
+                : null;
+            
+            // 解析文件路径
+            filePath = ResolveFilePath(filePath, workingDirectory);
             
             if (string.IsNullOrWhiteSpace(filePath))
             {
@@ -306,6 +365,12 @@ public class FilesystemTool : IToolHandler
         try
         {
             var directoryPath = parameters.GetProperty("directory_path").GetString();
+            var workingDirectory = parameters.TryGetProperty("working_directory", out var wdProp)
+                ? wdProp.GetString()
+                : null;
+            
+            // 解析目录路径
+            directoryPath = ResolveFilePath(directoryPath, workingDirectory);
             
             if (string.IsNullOrWhiteSpace(directoryPath))
             {

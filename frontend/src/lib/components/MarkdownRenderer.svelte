@@ -25,6 +25,13 @@
     function processThinkingTags(text: string): string {
         if (!text) return '';
         
+        // 首先处理被代码块包裹的 thinking 标签
+        // 匹配 ```xml <thinking>...</thinking> ``` 或 ``` <thinking>...</thinking> ``` 格式
+        const codeBlockThinkingRegex = /```\s*(xml)?\s*<thinking>([\s\S]*?)<\/thinking>\s*```/g;
+        text = text.replace(codeBlockThinkingRegex, (match, lang, content) => {
+            return `<thinking>${content.trim()}</thinking>`;
+        });
+        
         // 使用正则表达式匹配 <thinking>...</thinking> 标签
         const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/g;
         let match;
