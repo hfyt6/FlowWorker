@@ -14,4 +14,12 @@
     <ProjectReference Include="..\FlowWorker.Shared\FlowWorker.Shared.csproj" />
   </ItemGroup>
 
+  <!-- 将 prompts 文件夹包含到项目中，并在构建时复制到输出目录 -->
+  <ItemGroup>
+    <Content Include="..\..\prompts\**\*">
+      <Link>prompts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

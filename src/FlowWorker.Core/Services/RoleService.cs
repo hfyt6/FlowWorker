@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FlowWorker.Core.DTOs;
 using FlowWorker.Core.Interfaces;
+using FlowWorker.Core.Prompts;
 using FlowWorker.Core.Repositories;
 using FlowWorker.Shared.Entities;
 
@@ -125,6 +126,18 @@ public class RoleService : IRoleService
                 Description = "通用的AI助手，可以回答各种问题",
                 SystemPrompt = "你是一个有帮助的AI助手。请用简洁、准确的方式回答用户的问题。",
                 AllowedTools = SerializeAllowedTools(new List<string>()),
+                IsBuiltIn = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Name = "novelist",
+                DisplayName = "小说家",
+                Description = "专业的小说创作者，专注于小说写作、内容创作和文本编辑",
+                SystemPrompt = BuiltInPrompts.GetSystemPrompt("novelist", "zh") ?? "你是一个专业的小说创作者，专注于小说写作、内容创作和文本编辑",
+                AllowedTools = SerializeAllowedTools(new List<string> { "Filesystem", "Text" }),
                 IsBuiltIn = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow

@@ -1,7 +1,14 @@
 using System.Text.Json;
 using FlowWorker.Core.Interfaces;
 using FlowWorker.Core.Services;
-using FlowWorker.Core.Tools;
+using FlowWorker.Core.Tools.Calculator;
+using FlowWorker.Core.Tools.CodeAnalysis;
+using FlowWorker.Core.Tools.CodeManipulation;
+using FlowWorker.Core.Tools.Filesystem;
+using FlowWorker.Core.Tools.Network;
+using FlowWorker.Core.Tools.ProcessTools;
+using FlowWorker.Core.Tools.Text;
+using FlowWorker.Core.Tools.VersionControl;
 
 namespace FlowWorker.Tests.Core;
 
@@ -175,8 +182,10 @@ public class BuiltInToolsTests
         registry.Register(tool);
 
         // Assert
-        Assert.True(registry.HasTool("Calculator"));
-        Assert.Equal(1, registry.Count);
+        // 细粒度工具名注册
+        Assert.True(registry.HasTool("calculate"));
+        Assert.True(registry.HasTool("generate_uuid"));
+        Assert.Equal(4, registry.Count); // CalculatorTool 支持 4 个操作
     }
 
     [Fact]
@@ -188,7 +197,8 @@ public class BuiltInToolsTests
         registry.Register(tool);
 
         // Act
-        var retrievedTool = registry.GetTool("Calculator");
+        // 使用细粒度工具名获取
+        var retrievedTool = registry.GetTool("calculate");
 
         // Assert
         Assert.NotNull(retrievedTool);
@@ -202,7 +212,7 @@ public class BuiltInToolsTests
         var registry = new ToolRegistry();
 
         // Act
-        var retrievedTool = registry.GetTool("NonExistent");
+        var retrievedTool = registry.GetTool("non_existent_tool");
 
         // Assert
         Assert.Null(retrievedTool);
@@ -220,9 +230,10 @@ public class BuiltInToolsTests
         var tools = registry.GetAllTools().ToList();
 
         // Assert
-        Assert.Equal(2, tools.Count);
-        Assert.Contains(tools, tool => tool.Name == "Calculator");
-        Assert.Contains(tools, tool => tool.Name == "Text");
+        // CalculatorTool 支持 4 个操作，TextTool 支持 5 个操作
+        Assert.Equal(9, tools.Count);
+        Assert.Contains(tools, tool => tool.Name == "calculate");
+        Assert.Contains(tools, tool => tool.Name == "search_text");
     }
 
     [Fact]
@@ -234,11 +245,11 @@ public class BuiltInToolsTests
         registry.Register(tool);
 
         // Act
-        var result = registry.Unregister("Calculator");
+        var result = registry.UnregisterHandler("Calculator");
 
         // Assert
         Assert.True(result);
-        Assert.False(registry.HasTool("Calculator"));
+        Assert.False(registry.HasTool("calculate"));
     }
 
     [Fact]
@@ -270,7 +281,8 @@ public class BuiltInToolsTests
         var parameters = JsonDocument.Parse(@"{""expression"": ""2 + 2""}").RootElement;
 
         // Act
-        var result = await executor.ExecuteAsync("Calculator", "calculate", parameters);
+        // 使用细粒度工具名 "calculate" 执行
+        var result = await executor.ExecuteAsync("calculate", "calculate", parameters);
 
         // Assert
         Assert.True(result.Success);
@@ -287,7 +299,8 @@ public class BuiltInToolsTests
         var parameters = JsonDocument.Parse(@"{}").RootElement;
 
         // Act
-        var result = await executor.ExecuteAsync("NonExistent", "action", parameters);
+        // 使用不存在的细粒度工具名
+        var result = await executor.ExecuteAsync("non_existent_tool", "action", parameters);
 
         // Assert
         Assert.False(result.Success);
@@ -303,7 +316,8 @@ public class BuiltInToolsTests
         var executor = new ToolExecutor(registry);
 
         // Act
-        var result = executor.HasTool("Calculator");
+        // 使用细粒度工具名检查
+        var result = executor.HasTool("calculate");
 
         // Assert
         Assert.True(result);
@@ -322,7 +336,8 @@ public class BuiltInToolsTests
         var tools = executor.GetAllTools().ToList();
 
         // Assert
-        Assert.Equal(2, tools.Count);
+        // CalculatorTool 支持 4 个操作，TextTool 支持 5 个操作
+        Assert.Equal(9, tools.Count);
     }
 
     #endregion

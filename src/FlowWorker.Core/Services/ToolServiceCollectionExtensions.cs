@@ -1,5 +1,12 @@
 using FlowWorker.Core.Interfaces;
-using FlowWorker.Core.Tools;
+using FlowWorker.Core.Tools.Calculator;
+using FlowWorker.Core.Tools.CodeAnalysis;
+using FlowWorker.Core.Tools.CodeManipulation;
+using FlowWorker.Core.Tools.Filesystem;
+using FlowWorker.Core.Tools.Network;
+using FlowWorker.Core.Tools.ProcessTools;
+using FlowWorker.Core.Tools.Text;
+using FlowWorker.Core.Tools.VersionControl;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FlowWorker.Core.Services;

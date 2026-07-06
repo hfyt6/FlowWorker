@@ -31,8 +31,8 @@ public class ToolExecutor
     /// <summary>
     /// 执行工具
     /// </summary>
-    /// <param name="toolName">工具名称</param>
-    /// <param name="action">操作名称</param>
+    /// <param name="toolName">细粒度工具名称（如 read_file, write_file 等）</param>
+    /// <param name="action">操作名称（通常与 toolName 相同）</param>
     /// <param name="parameters">参数</param>
     /// <param name="workingDirectory">工作目录（可选）</param>
     /// <returns>执行结果</returns>
@@ -42,6 +42,7 @@ public class ToolExecutor
         
         try
         {
+            // 通过细粒度工具名获取工具处理器
             var tool = _registry.GetTool(toolName);
             if (tool == null)
             {
@@ -70,7 +71,8 @@ public class ToolExecutor
                 }
             }
             
-            var response = await tool.ExecuteAsync(action, parametersWithWorkingDir);
+            // 使用细粒度工具名作为 action 执行
+            var response = await tool.ExecuteAsync(toolName, parametersWithWorkingDir);
             response.ExecutionTime = stopwatch.ElapsedMilliseconds;
             
             return new ToolExecutionResult

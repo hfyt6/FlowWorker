@@ -148,151 +148,35 @@ public class PromptTemplateService : IPromptTemplateService
 
     public async Task InitializeBuiltInTemplatesAsync()
     {
-        var builtInTemplates = new List<PromptTemplate>
-        {
-            // Coder 角色系统提示词
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Name = "system",
-                Role = "coder",
-                TemplateType = "system",
-                Content = BuiltInPrompts.CoderSystemPrompt,
-                Variables = SerializeVariables(new List<string> { "workspace", "mode", "os", "shell", "customInstructions" }),
-                IsBuiltIn = true,
-                Description = "Coder角色的系统提示词，参考Cline设计",
-                Version = 1,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            },
-            // UI Designer 角色系统提示词
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Name = "system",
-                Role = "ui-designer",
-                TemplateType = "system",
-                Content = BuiltInPrompts.UIDesignerSystemPrompt,
-                Variables = SerializeVariables(new List<string> { "workspace", "mode", "customInstructions" }),
-                IsBuiltIn = true,
-                Description = "UI Designer角色的系统提示词",
-                Version = 1,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            },
-            // Architect 角色系统提示词
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Name = "system",
-                Role = "architect",
-                TemplateType = "system",
-                Content = BuiltInPrompts.ArchitectSystemPrompt,
-                Variables = SerializeVariables(new List<string> { "workspace", "mode", "customInstructions" }),
-                IsBuiltIn = true,
-                Description = "Architect角色的系统提示词",
-                Version = 1,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            },
-            // Reviewer 角色系统提示词
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Name = "system",
-                Role = "reviewer",
-                TemplateType = "system",
-                Content = BuiltInPrompts.ReviewerSystemPrompt,
-                Variables = SerializeVariables(new List<string> { "workspace", "mode", "customInstructions" }),
-                IsBuiltIn = true,
-                Description = "Reviewer角色的系统提示词",
-                Version = 1,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            },
-            // General 角色系统提示词
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Name = "system",
-                Role = "general",
-                TemplateType = "system",
-                Content = BuiltInPrompts.GeneralSystemPrompt,
-                Variables = SerializeVariables(new List<string> { "workspace", "mode", "customInstructions" }),
-                IsBuiltIn = true,
-                Description = "General角色的系统提示词",
-                Version = 1,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            },
-            // 代码审查模板
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Name = "code-review",
-                Role = "reviewer",
-                TemplateType = "template",
-                Content = BuiltInPrompts.CodeReviewTemplate,
-                Variables = SerializeVariables(new List<string> { "language", "code" }),
-                IsBuiltIn = true,
-                Description = "代码审查任务模板",
-                Version = 1,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            },
-            // 任务分析模板
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Name = "task-analysis",
-                Role = "architect",
-                TemplateType = "template",
-                Content = BuiltInPrompts.TaskAnalysisTemplate,
-                Variables = SerializeVariables(new List<string> { "taskDescription" }),
-                IsBuiltIn = true,
-                Description = "任务分析模板",
-                Version = 1,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            },
-            // 设计反馈模板
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Name = "design-feedback",
-                Role = "ui-designer",
-                TemplateType = "template",
-                Content = BuiltInPrompts.DesignFeedbackTemplate,
-                Variables = SerializeVariables(new List<string> { "designContent" }),
-                IsBuiltIn = true,
-                Description = "设计反馈模板",
-                Version = 1,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            },
-            // 多Agent协作模板
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Name = "multi-agent-collaboration",
-                Role = "general",
-                TemplateType = "template",
-                Content = BuiltInPrompts.MultiAgentCollaborationTemplate,
-                Variables = SerializeVariables(new List<string> { "topic", "agentRoles" }),
-                IsBuiltIn = true,
-                Description = "多Agent协作配置模板",
-                Version = 1,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            }
-        };
+        var roles = BuiltInPrompts.GetAvailableRoles();
+        var now = DateTime.UtcNow;
 
-        foreach (var template in builtInTemplates)
+        // 为每个角色创建系统提示词模板
+        foreach (var role in roles)
         {
-            if (!await _promptTemplateRepository.ExistsAsync(t =>
-                t.Role == template.Role && t.Name == template.Name && t.TemplateType == template.TemplateType))
+            var zhContent = BuiltInPrompts.GetSystemPrompt(role, "zh");
+            if (!string.IsNullOrEmpty(zhContent))
             {
-                await _promptTemplateRepository.AddAsync(template);
+                var template = new PromptTemplate
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "system",
+                    Role = role,
+                    TemplateType = "system",
+                    Content = zhContent,
+                    Variables = SerializeVariables(new List<string> { "workspace", "mode", "customInstructions" }),
+                    IsBuiltIn = true,
+                    Description = $"{role}角色的系统提示词",
+                    Version = 1,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+
+                if (!await _promptTemplateRepository.ExistsAsync(t =>
+                    t.Role == template.Role && t.Name == template.Name && t.TemplateType == template.TemplateType))
+                {
+                    await _promptTemplateRepository.AddAsync(template);
+                }
             }
         }
     }
@@ -372,11 +256,23 @@ public class PromptTemplateService : IPromptTemplateService
             }
         }
 
+        // 渲染角色系统提示词
         var renderedPrompt = await RenderTemplateAsync(systemPrompt ?? "", mergedVariables);
+
+        // 根据角色允许的工具列表动态生成工具提示词
+        var allowedTools = DeserializeTools(role.AllowedTools);
+        var toolPrompt = ToolPromptBuilder.BuildToolPrompt(allowedTools);
+
+        // 组合完整的系统提示词：角色提示词 + 工具提示词
+        var fullPrompt = renderedPrompt;
+        if (!string.IsNullOrEmpty(toolPrompt))
+        {
+            fullPrompt = renderedPrompt + "\n" + toolPrompt;
+        }
 
         return new RenderedPromptDto
         {
-            SystemPrompt = renderedPrompt,
+            SystemPrompt = fullPrompt,
             CustomInstructions = config?.CustomInstructions,
             Metadata = new Dictionary<string, object>
             {
@@ -385,7 +281,8 @@ public class PromptTemplateService : IPromptTemplateService
                 { "maxIterations", config?.MaxIterations ?? 10 },
                 { "tokenBudget", config?.TokenBudget ?? 4000 },
                 { "enableChainOfThought", config?.EnableChainOfThought ?? true },
-                { "enableTaskProgress", config?.EnableTaskProgress ?? true }
+                { "enableTaskProgress", config?.EnableTaskProgress ?? true },
+                { "allowedTools", allowedTools ?? new List<string>() }
             }
         };
     }

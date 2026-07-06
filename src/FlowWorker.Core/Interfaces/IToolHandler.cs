@@ -8,14 +8,20 @@ namespace FlowWorker.Core.Interfaces;
 public interface IToolHandler
 {
     /// <summary>
-    /// 工具名称
+    /// 工具名称（主名称，用于标识工具类别）
     /// </summary>
     string Name { get; }
     
     /// <summary>
+    /// 支持的工具操作名称列表（细粒度工具名）
+    /// 例如：FilesystemTool 支持 ["read_file", "write_file", "list_files", ...]
+    /// </summary>
+    IReadOnlyList<string> SupportedActions { get; }
+    
+    /// <summary>
     /// 执行工具
     /// </summary>
-    /// <param name="action">操作名称</param>
+    /// <param name="action">操作名称（细粒度工具名）</param>
     /// <param name="parameters">参数</param>
     /// <returns>工具响应</returns>
     Task<ToolResponse> ExecuteAsync(string action, JsonElement parameters);

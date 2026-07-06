@@ -81,6 +81,13 @@ public class DatabaseInitializer
 
     private async Task SeedBuiltInRolesAsync()
     {
+        // 从 prompts 文件夹读取系统提示词
+        var coderPrompt = BuiltInPrompts.GetSystemPrompt("coder", "zh") ?? "你是一个资深全栈开发工程师，专注于代码实现、文件操作和工具调用";
+        var uiDesignerPrompt = BuiltInPrompts.GetSystemPrompt("ui-designer", "zh") ?? "你是一个专业的UI/UX设计师，专注于界面设计、样式开发和用户体验优化";
+        var architectPrompt = BuiltInPrompts.GetSystemPrompt("architect", "zh") ?? "你是一个资深软件架构师，专注于系统架构设计、技术选型和方案规划";
+        var reviewerPrompt = BuiltInPrompts.GetSystemPrompt("reviewer", "zh") ?? "你是一个资深代码审查专家，专注于代码质量检查、问题识别和优化建议";
+        var generalPrompt = BuiltInPrompts.GetSystemPrompt("general", "zh") ?? "你是一个通用AI助手，专注于信息查询、问题解答和日常对话";
+
         var builtInRoles = new List<Role>
         {
             new()
@@ -101,7 +108,7 @@ public class DatabaseInitializer
                 Name = "coder",
                 DisplayName = "代码工程师",
                 Description = "资深全栈开发工程师，专注于代码实现、文件操作和工具调用",
-                SystemPrompt = BuiltInPrompts.CoderSystemPrompt,
+                SystemPrompt = coderPrompt,
                 AllowedTools = JsonSerializer.Serialize(new List<string> { "read_file", "write_file", "replace_in_file", "search_files", "list_files", "execute_command", "ask_followup_question" }),
                 IsBuiltIn = true,
                 CreatedAt = DateTime.UtcNow,
@@ -113,7 +120,7 @@ public class DatabaseInitializer
                 Name = "ui-designer",
                 DisplayName = "UI设计师",
                 Description = "专业的UI/UX设计师，专注于界面设计、样式开发和用户体验优化",
-                SystemPrompt = BuiltInPrompts.UIDesignerSystemPrompt,
+                SystemPrompt = uiDesignerPrompt,
                 AllowedTools = null,
                 IsBuiltIn = true,
                 CreatedAt = DateTime.UtcNow,
@@ -125,7 +132,7 @@ public class DatabaseInitializer
                 Name = "architect",
                 DisplayName = "架构师",
                 Description = "资深软件架构师，专注于系统架构设计、技术选型和方案规划",
-                SystemPrompt = BuiltInPrompts.ArchitectSystemPrompt,
+                SystemPrompt = architectPrompt,
                 AllowedTools = null,
                 IsBuiltIn = true,
                 CreatedAt = DateTime.UtcNow,
@@ -137,7 +144,7 @@ public class DatabaseInitializer
                 Name = "reviewer",
                 DisplayName = "代码审查专家",
                 Description = "资深代码审查专家，专注于代码质量检查、问题识别和优化建议",
-                SystemPrompt = BuiltInPrompts.ReviewerSystemPrompt,
+                SystemPrompt = reviewerPrompt,
                 AllowedTools = null,
                 IsBuiltIn = true,
                 CreatedAt = DateTime.UtcNow,
@@ -149,7 +156,7 @@ public class DatabaseInitializer
                 Name = "general",
                 DisplayName = "通用AI助手",
                 Description = "通用AI助手，专注于信息查询、问题解答和日常对话",
-                SystemPrompt = BuiltInPrompts.GeneralSystemPrompt,
+                SystemPrompt = generalPrompt,
                 AllowedTools = null,
                 IsBuiltIn = true,
                 CreatedAt = DateTime.UtcNow,
@@ -170,7 +177,7 @@ public class DatabaseInitializer
 
     private async Task SeedBuiltInPromptTemplatesAsync()
     {
-        var builtInTemplates = BuiltInPrompts.GetAllBuiltInPrompts();
+        var builtInTemplates = await BuiltInPrompts.GetAllPromptsAsync();
 
         foreach (var template in builtInTemplates)
         {

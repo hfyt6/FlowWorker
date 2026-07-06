@@ -1,6 +1,7 @@
+using System.IO;
 using System.Text.Json;
 using FlowWorker.Core.Services;
-using FlowWorker.Core.Tools;
+using FlowWorker.Core.Tools.Filesystem;
 using Xunit;
 
 namespace FlowWorker.Tests.Core;
@@ -152,8 +153,8 @@ public class ToolCallParserWithTaskProgressTests
             var parametersJson = JsonSerializer.Serialize(parameters);
             var parametersElement = JsonSerializer.Deserialize<JsonElement>(parametersJson);
 
-            // Act - 直接调用 Filesystem 工具
-            var result = await executor.ExecuteAsync("Filesystem", "read_file", parametersElement);
+            // Act - 使用细粒度工具名直接调用
+            var result = await executor.ExecuteAsync("read_file", "read_file", parametersElement);
 
             // Assert
             Assert.True(result.Success);
@@ -211,17 +212,9 @@ public class ToolCallParserWithTaskProgressTests
             var parametersJson = JsonSerializer.Serialize(parameters);
             var parametersElement = JsonSerializer.Deserialize<JsonElement>(parametersJson);
 
-            // 映射工具名称并执行
-            var mappedToolName = toolCall.ToolName switch
-            {
-                "read_file" => "Filesystem",
-                _ => null
-            };
-
-            Assert.NotNull(mappedToolName);
-
+            // 现在直接使用细粒度工具名执行，无需映射
             // Act
-            var result = await executor.ExecuteAsync(mappedToolName, "read_file", parametersElement);
+            var result = await executor.ExecuteAsync(toolCall.ToolName, toolCall.ToolName, parametersElement);
 
             // Assert
             Assert.True(result.Success);

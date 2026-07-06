@@ -26,9 +26,4 @@
     <ProjectReference Include="..\src\FlowWorker.Infrastructure\FlowWorker.Infrastructure.csproj" />
   </ItemGroup>
 
-  <!-- 包含插件文件进行测试 -->
-  <ItemGroup>
-    <Compile Include="..\plugins\calculator\handler.cs" Link="Plugins\Calculator\handler.cs" />
-  </ItemGroup>
-
 </Project>
