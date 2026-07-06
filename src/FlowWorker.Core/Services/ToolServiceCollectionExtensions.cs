@@ -1,4 +1,5 @@
 using FlowWorker.Core.Interfaces;
+using FlowWorker.Core.Tools.BuiltIn;
 using FlowWorker.Core.Tools.Calculator;
 using FlowWorker.Core.Tools.CodeAnalysis;
 using FlowWorker.Core.Tools.CodeManipulation;
@@ -28,6 +29,7 @@ public static class ToolServiceCollectionExtensions
         services.AddSingleton<ToolExecutor>();
 
         // 注册所有工具处理器
+        services.AddSingleton<IToolHandler, BuiltInTool>();
         services.AddSingleton<IToolHandler, CalculatorTool>();
         services.AddSingleton<IToolHandler, FilesystemTool>();
         services.AddSingleton<IToolHandler, NetworkTool>();
@@ -55,6 +57,7 @@ public static class ToolServiceCollectionExtensions
         services.AddSingleton<ToolExecutor>();
 
         // 注册所有工具处理器
+        services.AddSingleton<IToolHandler, BuiltInTool>();
         services.AddSingleton<IToolHandler, CalculatorTool>();
         services.AddSingleton<IToolHandler, FilesystemTool>();
         services.AddSingleton<IToolHandler, NetworkTool>();

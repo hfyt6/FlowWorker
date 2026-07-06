@@ -212,6 +212,11 @@ public partial class OpenAIService
             // 收集所有工具执行结果
             var toolResults = new List<string>();
             
+            // 检查是否包含 attempt_completion 工具调用
+            bool hasAttemptCompletion = false;
+            string? attemptCompletionResult = null;
+            string? attemptCompletionCommand = null;
+            
             for (int i = 0; i < toolCalls.Count; i++)
             {
                 var toolCall = toolCalls[i];
@@ -226,6 +231,23 @@ public partial class OpenAIService
                 }
                 
                 _logger.LogInformation("[工具调用链路]   原始 XML 内容：{RawContent}", toolCall.RawContent.Replace("\n", "\\n"));
+                
+                // 检查是否是 attempt_completion 工具
+                if (toolCall.ToolName.Equals("attempt_completion", StringComparison.OrdinalIgnoreCase))
+                {
+                    hasAttemptCompletion = true;
+                    _logger.LogInformation("[工具调用链路] 检测到 attempt_completion 工具调用，将停止递归");
+                    
+                    // 提取 result 和 command 参数
+                    if (toolCall.Parameters.TryGetValue("result", out var result))
+                    {
+                        attemptCompletionResult = result;
+                    }
+                    if (toolCall.Parameters.TryGetValue("command", out var command))
+                    {
+                        attemptCompletionCommand = command;
+                    }
+                }
                 
                 // ========== 后端执行工具调用 ==========
                 _logger.LogInformation("[工具调用链路] >>> 开始在后端执行工具...");
@@ -248,6 +270,23 @@ public partial class OpenAIService
                 Type = "content",
                 Content = allToolResults + "\n\n"
             });
+            
+            // 如果检测到 attempt_completion，停止递归，直接返回结果
+            if (hasAttemptCompletion)
+            {
+                _logger.LogInformation("[工具调用链路] attempt_completion 工具已执行，停止递归调用");
+                
+                // 构建完成消息
+                var completionMessage = attemptCompletionResult ?? "任务已完成";
+                
+                // 如果有 command，添加到消息中
+                if (!string.IsNullOrWhiteSpace(attemptCompletionCommand))
+                {
+                    completionMessage += $"\n\n可执行命令: {attemptCompletionCommand}";
+                }
+                
+                return completionMessage;
+            }
             
             // ========== 递归调用：将工具执行结果发送给 AI 获取下一步响应 ==========
             _logger.LogInformation("[工具调用链路] >>> 开始递归调用：将工具执行结果发送给 AI");

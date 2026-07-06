@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FlowWorker.Core.Interfaces;
 using FlowWorker.Core.Services;
+using FlowWorker.Core.Tools.BuiltIn;
 using FlowWorker.Core.Tools.Calculator;
 using FlowWorker.Core.Tools.CodeAnalysis;
 using FlowWorker.Core.Tools.CodeManipulation;
@@ -700,6 +701,132 @@ public class BuiltInToolsTests
                 Directory.Delete(testDirPath, true);
             }
         }
+    }
+
+    #endregion
+
+    #region BuiltInTool Tests
+
+    [Fact]
+    public async Task BuiltInTool_AttemptCompletion_WithValidResult_ReturnsSuccess()
+    {
+        // Arrange
+        var tool = new BuiltInTool();
+        var parameters = JsonDocument.Parse(@"{""result"": ""任务已完成"", ""command"": ""open index.html""}").RootElement;
+
+        // Act
+        var result = await tool.ExecuteAsync("attempt_completion", parameters);
+
+        // Assert
+        Assert.Equal("success", result.Status);
+        Assert.NotNull(result.Data);
+    }
+
+    [Fact]
+    public async Task BuiltInTool_AttemptCompletion_WithEmptyResult_ReturnsError()
+    {
+        // Arrange
+        var tool = new BuiltInTool();
+        var parameters = JsonDocument.Parse(@"{""result"": """"}").RootElement;
+
+        // Act
+        var result = await tool.ExecuteAsync("attempt_completion", parameters);
+
+        // Assert
+        Assert.Equal("error", result.Status);
+        Assert.NotNull(result.ErrorInfo);
+        Assert.Equal("INVALID_PARAMETERS", result.ErrorInfo!.Code);
+    }
+
+    [Fact]
+    public async Task BuiltInTool_AskFollowupQuestion_WithValidQuestion_ReturnsSuccess()
+    {
+        // Arrange
+        var tool = new BuiltInTool();
+        var parameters = JsonDocument.Parse(@"{""question"": ""请提供更多信息"", ""options"": [""选项1"", ""选项2""]}").RootElement;
+
+        // Act
+        var result = await tool.ExecuteAsync("ask_followup_question", parameters);
+
+        // Assert
+        Assert.Equal("success", result.Status);
+        Assert.NotNull(result.Data);
+    }
+
+    [Fact]
+    public async Task BuiltInTool_AskFollowupQuestion_WithEmptyQuestion_ReturnsError()
+    {
+        // Arrange
+        var tool = new BuiltInTool();
+        var parameters = JsonDocument.Parse(@"{""question"": """"}").RootElement;
+
+        // Act
+        var result = await tool.ExecuteAsync("ask_followup_question", parameters);
+
+        // Assert
+        Assert.Equal("error", result.Status);
+        Assert.NotNull(result.ErrorInfo);
+        Assert.Equal("INVALID_PARAMETERS", result.ErrorInfo!.Code);
+    }
+
+    [Fact]
+    public async Task BuiltInTool_PlanModeRespond_WithValidResponse_ReturnsSuccess()
+    {
+        // Arrange
+        var tool = new BuiltInTool();
+        var parameters = JsonDocument.Parse(@"{""response"": ""这是一个计划"", ""needs_more_exploration"": false}").RootElement;
+
+        // Act
+        var result = await tool.ExecuteAsync("plan_mode_respond", parameters);
+
+        // Assert
+        Assert.Equal("success", result.Status);
+        Assert.NotNull(result.Data);
+    }
+
+    [Fact]
+    public async Task BuiltInTool_PlanModeRespond_WithEmptyResponse_ReturnsError()
+    {
+        // Arrange
+        var tool = new BuiltInTool();
+        var parameters = JsonDocument.Parse(@"{""response"": """"}").RootElement;
+
+        // Act
+        var result = await tool.ExecuteAsync("plan_mode_respond", parameters);
+
+        // Assert
+        Assert.Equal("error", result.Status);
+        Assert.NotNull(result.ErrorInfo);
+        Assert.Equal("INVALID_PARAMETERS", result.ErrorInfo!.Code);
+    }
+
+    [Fact]
+    public void BuiltInTool_SupportedActions_ContainsAllActions()
+    {
+        // Arrange
+        var tool = new BuiltInTool();
+
+        // Assert
+        Assert.Contains("ask_followup_question", tool.SupportedActions);
+        Assert.Contains("attempt_completion", tool.SupportedActions);
+        Assert.Contains("plan_mode_respond", tool.SupportedActions);
+    }
+
+    [Fact]
+    public void ToolRegistry_Register_BuiltInTool_AddsAllActions()
+    {
+        // Arrange
+        var registry = new ToolRegistry();
+        var tool = new BuiltInTool();
+
+        // Act
+        registry.Register(tool);
+
+        // Assert
+        Assert.True(registry.HasTool("ask_followup_question"));
+        Assert.True(registry.HasTool("attempt_completion"));
+        Assert.True(registry.HasTool("plan_mode_respond"));
+        Assert.Equal(3, registry.Count);
     }
 
     #endregion
