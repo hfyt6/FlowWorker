@@ -145,12 +145,15 @@ public class SessionRepository : ISessionRepository
 
     public async Task<Session?> GetSessionWithMembersAsync(Guid sessionId)
     {
+        // 使用 AsSplitQuery() 避免多集合 Include 导致的笛卡尔积问题
+        // 这会将查询拆分为多个 SQL 查询，每个集合单独加载
         return await _dbSet
             .Include(s => s.ApiConfig)
             .Include(s => s.Messages)
             .Include(s => s.SessionMembers)
             .ThenInclude(sp => sp.Member)
             .ThenInclude(m => m.ApiConfig)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(s => s.Id == sessionId);
     }
 
