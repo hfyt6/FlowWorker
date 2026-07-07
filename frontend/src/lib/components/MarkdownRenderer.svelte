@@ -1,5 +1,6 @@
 <script lang="ts">
     import { marked } from 'marked';
+    import { onMount } from 'svelte';
 
     interface Props {
         content: string;
@@ -7,86 +8,120 @@
 
     let { content }: Props = $props();
 
-    // 折叠状态
-    let collapsedSections: Record<string, boolean> = $state({});
-
-    // 切换折叠状态
-    function toggleCollapse(id: string) {
-        collapsedSections[id] = !collapsedSections[id];
-    }
-
     // 配置 marked 选项
     marked.setOptions({
         breaks: true,  // 将换行符转换为 <br>
         gfm: true,     // 启用 GitHub Flavored Markdown
     });
 
-    // 处理 thinking 标签，将其转换为可折叠的 HTML
-    function processThinkingTags(text: string): string {
-        if (!text) return '';
-        
-        // 首先处理被代码块包裹的 thinking 标签
-        // 匹配 ```xml <thinking>...</thinking> ``` 或 ``` <thinking>...</thinking> ``` 格式
-        const codeBlockThinkingRegex = /```\s*(xml)?\s*<thinking>([\s\S]*?)<\/thinking>\s*```/g;
-        text = text.replace(codeBlockThinkingRegex, (match, lang, content) => {
-            return `<thinking>${content.trim()}</thinking>`;
-        });
-        
-        // 使用正则表达式匹配 <thinking>...</thinking> 标签
-        const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/g;
-        let match;
-        let lastIndex = 0;
-        let result = '';
-        let thinkingCount = 0;
-
-        while ((match = thinkingRegex.exec(text)) !== null) {
-            // 添加思考标签前的内容
-            result += text.slice(lastIndex, match.index);
-            
-            const thinkingContent = match[1].trim();
-            const thinkingId = `thinking-${thinkingCount++}`;
-            const isCollapsed = collapsedSections[thinkingId] !== false; // 默认折叠
-            
-            // 生成可折叠的 HTML 结构
-            result += `
-                <div class="thinking-block" data-thinking-id="${thinkingId}">
-                    <div class="thinking-header" onclick="window.toggleThinking('${thinkingId}')">
-                        <svg class="thinking-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: ${isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}; transition: transform 0.2s;"><path d="m6 9 6 6 6-6"/></svg>
-                        <span class="thinking-title">${isCollapsed ? '查看思考过程' : '隐藏思考过程'}</span>
-                    </div>
-                    <div class="thinking-content" style="display: ${isCollapsed ? 'none' : 'block'};">
-                        <div class="thinking-content-inner">${thinkingContent}</div>
-                    </div>
-                </div>
-            `;
-            
-            lastIndex = match.index + match[0].length;
-        }
-
-        // 添加剩余内容
-        result += text.slice(lastIndex);
-        
-        return result || text;
-    }
-
-    // 渲染 Markdown 内容
+    // 渲染 Markdown 内容，正确处理 thinking 标签
     function renderMarkdown(text: string): string {
         if (!text) return '';
         try {
-            // 先处理 thinking 标签
-            const processedText = processThinkingTags(text);
-            // 再渲染 Markdown
-            return marked.parse(processedText) as string;
+            // 首先处理被代码块包裹的 thinking 标签
+            // 匹配 ```xml <thinking>...</thinking> ``` 或 ``` <thinking>...</thinking> ``` 格式
+            const codeBlockThinkingRegex = /```\s*(xml)?\s*<thinking>([\s\S]*?)<\/thinking>\s*```/g;
+            text = text.replace(codeBlockThinkingRegex, (match, lang, content) => {
+                return `<thinking>${content.trim()}</thinking>`;
+            });
+            
+            // 使用正则表达式匹配 <thinking>...</thinking> 标签，并分割文本
+            const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/g;
+            const parts: Array<{type: 'text' | 'thinking', content: string, id?: string}> = [];
+            let lastIndex = 0;
+            let thinkingCount = 0;
+            let match;
+            
+            while ((match = thinkingRegex.exec(text)) !== null) {
+                // 添加 thinking 标签前的文本
+                if (match.index > lastIndex) {
+                    parts.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+                }
+                // 添加 thinking 内容
+                const id = `thinking-${thinkingCount++}`;
+                parts.push({ type: 'thinking', content: match[1].trim(), id });
+                lastIndex = match.index + match[0].length;
+            }
+            
+            // 添加剩余文本
+            if (lastIndex < text.length) {
+                parts.push({ type: 'text', content: text.slice(lastIndex) });
+            }
+            
+            // 如果没有 thinking 标签，直接渲染 Markdown
+            if (parts.length === 0 || !parts.some(p => p.type === 'thinking')) {
+                return marked.parse(text) as string;
+            }
+            
+            // 分别渲染各部分，thinking 块默认折叠
+            let result = '';
+            for (const part of parts) {
+                if (part.type === 'text') {
+                    result += marked.parse(part.content) as string;
+                } else {
+                    // 对 thinking 内容也进行 Markdown 渲染
+                    const renderedContent = marked.parse(part.content) as string;
+                    result += `
+                        <div class="thinking-block" data-thinking-id="${part.id}">
+                            <div class="thinking-header">
+                                <svg class="thinking-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(-90deg); transition: transform 0.2s;"><path d="m6 9 6 6 6-6"/></svg>
+                                <span class="thinking-title">查看思考过程</span>
+                            </div>
+                            <div class="thinking-content" style="display: none;">
+                                <div class="thinking-content-inner">${renderedContent}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            return result;
         } catch (e) {
             console.error('Markdown parsing error:', e);
             return text;
         }
     }
 
-    // 暴露给全局作用域用于点击事件
-    $effect(() => {
-        (window as any).toggleThinking = (id: string) => {
-            toggleCollapse(id);
+    // 切换 thinking 块的折叠状态（直接操作 DOM）
+    function toggleThinkingBlock(header: HTMLElement) {
+        const block = header.closest('.thinking-block');
+        if (!block) return;
+        
+        const content = block.querySelector('.thinking-content') as HTMLElement;
+        const icon = header.querySelector('.thinking-icon') as HTMLElement;
+        const title = header.querySelector('.thinking-title') as HTMLElement;
+        
+        if (!content || !icon || !title) return;
+        
+        const isCollapsed = content.style.display === 'none';
+        
+        if (isCollapsed) {
+            // 展开
+            content.style.display = 'block';
+            icon.style.transform = 'rotate(0deg)';
+            title.textContent = '隐藏思考过程';
+        } else {
+            // 折叠
+            content.style.display = 'none';
+            icon.style.transform = 'rotate(-90deg)';
+            title.textContent = '查看思考过程';
+        }
+    }
+
+    // 使用事件委托处理 thinking 块的点击
+    onMount(() => {
+        function handleClick(e: MouseEvent) {
+            const target = e.target as HTMLElement;
+            const header = target.closest('.thinking-header');
+            if (header) {
+                toggleThinkingBlock(header as HTMLElement);
+            }
+        }
+        
+        document.addEventListener('click', handleClick);
+        
+        return () => {
+            document.removeEventListener('click', handleClick);
         };
     });
 </script>
@@ -94,25 +129,6 @@
 <div class="markdown-content">
     {@html renderMarkdown(content)}
 </div>
-
-<!-- 为 thinking 块添加事件委托 -->
-<svelte:head>
-    <script>
-        // 使用事件委托处理动态生成的 thinking 块点击
-        document.addEventListener('click', function(e) {
-            const header = e.target.closest('.thinking-header');
-            if (header) {
-                const block = header.closest('.thinking-block');
-                if (block) {
-                    const id = block.getAttribute('data-thinking-id');
-                    if (id && window.toggleThinking) {
-                        window.toggleThinking(id);
-                    }
-                }
-            }
-        });
-    </script>
-</svelte:head>
 
 <style>
     /* Thinking 折叠块样式 */
